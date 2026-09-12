@@ -1,3 +1,7 @@
+# Rota da Aprovação 2.2
+
+Versão com refinamento visual ampliado, tipografia maior e layout desktop menos compacto.
+
 # Rota da Aprovação 2.0 — Física SEDUC-PA
 
 Nova interface desktop-first construída em React + TypeScript + Vite, usando como referência visual o conceito “Comando de Estudo”.
