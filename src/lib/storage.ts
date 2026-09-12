@@ -16,7 +16,7 @@ export const db=new RotaDB()
 
 export function defaultState():AppState{
   return {
-    version:'2.3.2',progress:[],sessions:[],questionSessions:[],errors:[],reviews:[],flashcards:[],questionBank:[],simulations:[],discursives:[],practicals:[],
+    version:'2.4.0',progress:[],sessions:[],questionSessions:[],errors:[],reviews:[],flashcards:[],questionBank:[],simulations:[],discursives:[],practicals:[],
     formulas:formulaSeed.map(f=>({...f})),micro:{answered:0,correct:0},dailyDone:{},pinnedTopics:[],achievementsSeen:[],
     diagnostic:{attempts:[],draft:null,activeResultId:null,review:false},
     settings:{weeklyHoursGoal:12,weeklyQuestionsGoal:180,dailyMinutesGoal:120,firstCycleTarget:'2026-11-15',theme:'light',focusPreset:50,sidebarCollapsed:false,displayName:''},
@@ -32,7 +32,7 @@ export function migrateState(input:unknown):AppState{
   const qSource=Array.isArray(p.questionSessions)?p.questionSessions:(Array.isArray(p.questions)?p.questions:[]) as any[]
   return {
     ...base,...p,
-    version:'2.3.2',
+    version:'2.4.0',
     progress:safeArray(p.progress),sessions:safeArray(p.sessions),questionSessions:safeArray<any>(qSource),errors:safeArray(p.errors),reviews:safeArray(p.reviews),flashcards:safeArray(p.flashcards),questionBank:safeArray(p.questionBank),simulations:safeArray(p.simulations),discursives:safeArray(p.discursives),practicals:safeArray(p.practicals),
     formulas:Array.isArray(p.formulas)&&p.formulas.length?p.formulas:base.formulas,
     micro:{...base.micro,...(p.micro||{})},dailyDone:{...base.dailyDone,...(p.dailyDone||{})},pinnedTopics:safeArray(p.pinnedTopics),achievementsSeen:safeArray(p.achievementsSeen),
@@ -87,7 +87,7 @@ export async function persistState(state:AppState){
 
 export function exportBackup(state:AppState){
   const next={...state,meta:{...(state.meta||{}),lastBackupAt:new Date().toISOString(),updatedAt:new Date().toISOString()}}
-  const blob=new Blob([JSON.stringify({...next,exportedAt:new Date().toISOString(),appVersion:'2.3.2'},null,2)],{type:'application/json'})
+  const blob=new Blob([JSON.stringify({...next,exportedAt:new Date().toISOString(),appVersion:'2.4.0'},null,2)],{type:'application/json'})
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`backup-rota-aprovacao-fisica-${new Date().toISOString().slice(0,10)}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)
   return next
 }

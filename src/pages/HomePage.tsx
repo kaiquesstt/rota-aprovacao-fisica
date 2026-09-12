@@ -5,13 +5,13 @@ import { MetricCard } from '../components/MetricCard'
 import { ChartBox } from '../components/ChartBox'
 import { useAppStore } from '../store/useAppStore'
 import { topics } from '../data/topics'
-import { achievementData, daysToExam, disciplineStats, dueReviews, nextTopic, overallAccuracy, readiness, recentActivity, statusCounts, streak, totalQuestions, totalStudySeconds, weightedCoverage, weeklySeries, xpInfo } from '../lib/analytics'
-import { fmtDuration, fmtDate, today } from '../lib/date'
+import { achievementData, daysToExam, disciplineStats, dueReviews, nextTopic, overallAccuracy, readiness, recentActivity, statusCounts, streak, totalQuestions, totalStudySeconds, weightedCoverage, dailySeries, xpInfo } from '../lib/analytics'
+import { fmtDuration, today } from '../lib/date'
 import type { PageId } from '../types'
 
 export function HomePage({go}:{go:(p:PageId)=>void}){
   const s=useAppStore(x=>x.data),startTimer=useAppStore(x=>x.startTimer)
-  const next=nextTopic(s),due=dueReviews(s),series=weeklySeries(s),status=statusCounts(s),xp=xpInfo(s),disc=disciplineStats(s).filter(x=>x.totalTopics>0),recent=recentActivity(s),achievements=achievementData(s)
+  const next=nextTopic(s),due=dueReviews(s),series=dailySeries(s,15),status=statusCounts(s),xp=xpInfo(s),disc=disciplineStats(s).filter(x=>x.totalTopics>0),recent=recentActivity(s),achievements=achievementData(s)
   const [showAllAchievements,setShowAllAchievements]=useState(false)
   const unlocked=achievements.filter(a=>a.done).length
   const statusData=[{name:'Dominado',value:status.dominado,color:'#18a47c'},{name:'Revisando',value:status.revisando,color:'#4f9cf2'},{name:'Estudando',value:status.estudando,color:'#e9ad3e'},{name:'Não iniciado',value:status.nao_iniciado,color:'#c8d5df'}]
@@ -38,7 +38,7 @@ export function HomePage({go}:{go:(p:PageId)=>void}){
       </div>
       <article className="panel achievements-panel"><div className="panel-title"><div><span className="eyebrow">CONQUISTAS</span><h3>Marcos da sua preparação</h3><p className="achievement-summary-copy">{unlocked} de {achievements.length} conquistas desbloqueadas</p></div><button className="text-btn" onClick={()=>setShowAllAchievements(v=>!v)}>{showAllAchievements?'Mostrar menos':'Ver todas'} →</button></div><div className="achievement-overall"><span style={{width:`${Math.round(unlocked/achievements.length*100)}%`}}></span></div><div className="achievement-grid">{achievements.slice(0,showAllAchievements?achievements.length:6).map(a=><div className={`achievement-card ${a.done?'unlocked':'locked'}`} key={a.id}><div className="achievement-icon">{a.icon}</div><div className="achievement-copy"><strong>{a.title}</strong><small>{a.desc}</small><div className="achievement-meta"><span>{a.done?'Concluída':'Em progresso'}</span><b>{a.currentLabel} / {a.targetLabel}</b></div><div className="achievement-progress"><i style={{width:`${a.done?100:a.pct}%`}}></i></div></div></div>)}</div></article>
       <div className="dashboard-grid two">
-        <article className="panel chart-panel"><div className="panel-title"><div><span className="eyebrow">EVOLUÇÃO</span><h3>Últimas 8 semanas</h3></div><button className="text-btn" onClick={()=>go('performance')}>Ver detalhes →</button></div><ChartBox height={270}>{({width,height})=><ComposedChart width={width} height={height} data={series} margin={{top:10,right:18,left:0,bottom:8}}><CartesianGrid strokeDasharray="3 3" stroke="#e6edf3"/><XAxis dataKey="week"/><YAxis/><Tooltip/><Bar dataKey="questions" fill="#7db8f5" opacity={.55}/><Line type="monotone" dataKey="accuracy" stroke="#15a6b6" strokeWidth={3} dot={{r:3}}/></ComposedChart>}</ChartBox></article>
+        <article className="panel chart-panel"><div className="panel-title"><div><span className="eyebrow">EVOLUÇÃO DIÁRIA</span><h3>Últimos 15 dias</h3></div><button className="text-btn" onClick={()=>go('performance')}>Ver detalhes →</button></div><ChartBox height={270}>{({width,height})=><ComposedChart width={width} height={height} data={series} margin={{top:10,right:18,left:0,bottom:8}}><CartesianGrid strokeDasharray="3 3" stroke="#e6edf3"/><XAxis dataKey="day" interval={2}/><YAxis/><Tooltip/><Bar dataKey="questions" fill="#7db8f5" opacity={.55}/><Line type="monotone" dataKey="accuracy" stroke="#15a6b6" strokeWidth={3} dot={{r:3}} connectNulls/></ComposedChart>}</ChartBox></article>
         <article className="panel chart-panel"><div className="panel-title"><div><span className="eyebrow">CONTEÚDOS</span><h3>Distribuição dos status</h3></div></div><div className="donut-wrap"><div className="donut-chart-shell"><ChartBox height={250}>{({width,height})=><PieChart width={width} height={height}><Pie data={statusData} dataKey="value" cx="50%" cy="50%" innerRadius={58} outerRadius={88} paddingAngle={2}>{statusData.map(x=><Cell key={x.name} fill={x.color}/>)}</Pie><Tooltip/></PieChart>}</ChartBox></div><div className="legend-list">{statusData.map(x=><div key={x.name}><i style={{background:x.color}}></i><span>{x.name}</span><b>{x.value}</b></div>)}</div></div></article>
       </div>
       <div className="dashboard-grid three">

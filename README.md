@@ -1,3 +1,15 @@
+## v2.4.0
+- Evolução diária com seletor de 15 ou 30 dias.
+- Filtros visuais de conteúdo, incluindo ocultar dominados.
+- Feedback central destacado ao salvar, excluir, importar ou atualizar progresso.
+- Celebração de conquistas com modal e confetes.
+- Busca global no cabeçalho para conteúdos e fórmulas.
+- Estados vazios mais claros e cards responsivos sem rolagem horizontal.
+
+## v2.3.3
+- Adiciona modo livre do cronômetro: inicia em 00:00 e conta para cima.
+- Mantém modo regressivo por duração e tela inteira.
+
 ## v2.3.2
 
 Correções: cronômetro/início, modo tela inteira, exclusão de blocos de questões e retorno das conquistas.

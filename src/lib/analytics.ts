@@ -29,6 +29,18 @@ export const disciplineStats=(s:AppState)=>Object.keys(disciplineWeights).map(d=
 export const statusCounts=(s:AppState)=>topics.reduce((a,t)=>{const st=getProgress(s,t.id).status;a[st]++;return a},{nao_iniciado:0,estudando:0,revisando:0,dominado:0} as Record<TopicStatus,number>)
 export function weekStats(s:AppState,offset=0){const a=dateStr(weekStart(offset)),b=dateStr(new Date(weekStart(offset).getTime()+7*86400000));const ss=s.sessions.filter(x=>x.date>=a&&x.date<b),qs=s.questionSessions.filter(x=>x.date>=a&&x.date<b),time=ss.reduce((x,y)=>x+y.durationSeconds,0),total=qs.reduce((x,y)=>x+y.total,0),correct=qs.reduce((x,y)=>x+y.correct,0),revs=s.reviews.filter(r=>r.lastReviewed&&r.lastReviewed.slice(0,10)>=a&&r.lastReviewed.slice(0,10)<b).length;return {a,b,time,total,correct,acc:total?Math.round(correct/total*100):0,revs,sessions:ss.length}}
 export const weeklySeries=(s:AppState,n=8)=>Array.from({length:n},(_,i)=>{const w=weekStats(s,i-(n-1));return {week:w.a.slice(5).replace('-','/'),hours:+(w.time/3600).toFixed(1),questions:w.total,accuracy:w.acc,reviews:w.revs}})
+
+export const dailySeries=(s:AppState,days=15)=>Array.from({length:days},(_,i)=>{
+  const date=addDays(today(),-(days-1-i))
+  const ss=s.sessions.filter(x=>x.date===date)
+  const qs=s.questionSessions.filter(x=>x.date===date)
+  const seconds=ss.reduce((a,b)=>a+(+b.durationSeconds||0),0)
+  const total=qs.reduce((a,b)=>a+b.total,0)
+  const correct=qs.reduce((a,b)=>a+b.correct,0)
+  const reviews=s.reviews.filter(r=>r.lastReviewed?.slice(0,10)===date).length
+  return {date,day:`${date.slice(8,10)}/${date.slice(5,7)}`,hours:+(seconds/3600).toFixed(1),minutes:Math.round(seconds/60),questions:total,accuracy:total?Math.round(correct/total*100):null,reviews}
+})
+
 export const activityHeatmap=(s:AppState,days=84)=>Array.from({length:days},(_,i)=>{const date=addDays(today(),-(days-1-i));const seconds=s.sessions.filter(x=>x.date===date).reduce((a,b)=>a+b.durationSeconds,0);const questions=s.questionSessions.filter(x=>x.date===date).reduce((a,b)=>a+b.total,0);return {date,minutes:Math.round(seconds/60),questions,score:Math.min(4,Math.ceil((seconds/60+questions*1.5)/35))}})
 export const priorityScore=(s:AppState,t:Topic)=>{const p=getProgress(s,t.id),acc=accuracyForTopic(s,t.id),last=p.updatedAt?p.updatedAt.slice(0,10):null,stale=last?Math.max(0,Math.min(30,daysBetween(last,today()))):30,overdue=s.reviews.some(r=>r.topicId===t.id&&r.due<=today()),errs=s.errors.filter(e=>e.topicId===t.id&&!e.resolved).length;let x=(acc===null?18:Math.max(0,(75-acc)*.9))+Math.min(25,stale*.85)+({nao_iniciado:22,estudando:14,revisando:8,dominado:0}[p.status])+ (overdue?12:0)+Math.min(16,errs*4);return Math.round(Math.min(100,x))}
 export const nextTopic=(s:AppState)=>topics.slice().sort((a,b)=>priorityScore(s,b)-priorityScore(s,a))[0]

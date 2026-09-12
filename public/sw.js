@@ -1,4 +1,4 @@
-const CACHE = 'rota-fisica-2.3.2';
+const CACHE = 'rota-fisica-2.4.0';
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(['./','./index.html','./manifest.webmanifest'])));
   self.skipWaiting();
