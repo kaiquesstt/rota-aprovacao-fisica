@@ -1,0 +1,1 @@
+export function MetricCard({label,value,sub,icon}:{label:string;value:string|number;sub?:string;icon?:React.ReactNode}){return <div className="metric-card"><div className="metric-icon">{icon}</div><div><small>{label}</small><strong>{value}</strong>{sub&&<span>{sub}</span>}</div></div>}
