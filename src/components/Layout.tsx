@@ -31,7 +31,7 @@ export function Layout({page,setPage,children}:{page:PageId;setPage:(p:PageId)=>
       <div className="brand"><div className="brand-mark">⚛</div><div><strong>Rota da Aprovação</strong><span>SEDUC-PA • Física • Marabá</span></div></div>
       <nav>{nav.map(item=>{const I=item.icon;return <button key={item.id} className={page===item.id?'active':''} onClick={()=>setPage(item.id)}><I size={18}/><span>{item.label}</span></button>})}</nav>
       <div className="sidebar-focus"><Zap size={18}/><div><b>Modo foco</b><span>Mais foco. Mais resultados.</span></div></div>
-      <div className="sidebar-foot"><b>{daysToExam()} dias</b><span>até 29/11/2026</span><small>v2.3.1 • Offline-first</small></div>
+      <div className="sidebar-foot"><b>{daysToExam()} dias</b><span>até 29/11/2026</span><small>v2.3.2 • Offline-first</small></div>
     </aside>
     <main className="main-area">
       <header className="topbar">

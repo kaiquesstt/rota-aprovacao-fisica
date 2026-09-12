@@ -37,3 +37,41 @@ export const recentActivity=(s:AppState)=>[
   ...s.sessions.map(x=>({date:x.createdAt||`${x.date}T12:00:00`,kind:'Estudo',title:x.topicTitle||'Sessão de estudo',detail:`${Math.round(x.durationSeconds/60)} min`})),
   ...s.questionSessions.map(x=>({date:x.createdAt||`${x.date}T12:00:00`,kind:'Questões',title:x.topicTitle,detail:`${x.total} questões • ${x.accuracy}%`}))
 ].sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,8)
+
+
+export type AchievementInfo={id:string;icon:string;title:string;desc:string;current:number;target:number;suffix?:string;done:boolean;pct:number;currentLabel:string;targetLabel:string}
+export function achievementData(s:AppState):AchievementInfo[]{
+  const totalQ=totalQuestions(s)
+  const timeHours=Math.round(totalStudySeconds(s)/360)/10
+  const counts=statusCounts(s)
+  const studying=topics.filter(t=>['estudando','revisando'].includes(getProgress(s,t.id).status)).length
+  const reviewDone=s.reviews.filter(r=>r.lastReviewed).length
+  const phys=s.questionSessions.filter(q=>q.discipline==='Física')
+  const physTot=phys.reduce((a,b)=>a+b.total,0),physCor=phys.reduce((a,b)=>a+b.correct,0),physAcc=physTot?Math.round(physCor/physTot*100):0
+  const fgv=s.questionSessions.filter(q=>(q.bank||'').toUpperCase()==='FGV')
+  const fgvTot=fgv.reduce((a,b)=>a+b.total,0),fgvCor=fgv.reduce((a,b)=>a+b.correct,0),fgvAcc=fgvTot?Math.round(fgvCor/fgvTot*100):0
+  const magnetIds=new Set(topics.filter(t=>/magnet|eletricidade/i.test(`${t.group} ${t.title}`)).map(t=>t.id))
+  const magnetQ=s.questionSessions.filter(q=>magnetIds.has(q.topicId)).reduce((a,b)=>a+b.total,0)
+  const simBest=Math.max(0,...s.simulations.map(x=>x.percent||0))
+  const diag=(s.diagnostic?.attempts||[]).map((a:any)=>Number(a?.total?.pct||0)).filter(Number.isFinite)
+  const diagGain=diag.length>1?diag[diag.length-1]-diag[0]:0
+  const list=[
+    {id:'q10',icon:'🎯',title:'Primeiros 10',desc:'Resolver 10 questões',current:totalQ,target:10},
+    {id:'q100',icon:'🏅',title:'Primeiros 100',desc:'Resolver 100 questões',current:totalQ,target:100},
+    {id:'tempo5',icon:'⏱️',title:'Ritmo inicial',desc:'Acumular 5 horas de estudo',current:timeHours,target:5,suffix:' h'},
+    {id:'tempo20',icon:'🕒',title:'Carga de estudo',desc:'Acumular 20 horas de estudo',current:timeHours,target:20,suffix:' h'},
+    {id:'streak3',icon:'🔥',title:'Constância 3 dias',desc:'Estudar por 3 dias seguidos',current:streak(s),target:3,suffix:' dias'},
+    {id:'streak10',icon:'⚡',title:'Constância 10 dias',desc:'Estudar por 10 dias seguidos',current:streak(s),target:10,suffix:' dias'},
+    {id:'dom1',icon:'📘',title:'Primeiro domínio',desc:'Dominar o primeiro conteúdo',current:counts.dominado,target:1},
+    {id:'dom10',icon:'📚',title:'Mapa avançando',desc:'Dominar 10 conteúdos',current:counts.dominado,target:10},
+    {id:'em_andamento',icon:'🧭',title:'Motor ligado',desc:'Ter 5 conteúdos em andamento',current:studying,target:5},
+    {id:'review20',icon:'🔁',title:'Revisor ativo',desc:'Concluir 20 revisões',current:reviewDone,target:20},
+    {id:'fisica80',icon:'⚛️',title:'Física em alta',desc:'Atingir 80% em 50+ questões de Física',current:physAcc,target:80,extra:physTot>=50},
+    {id:'fgv80',icon:'🏛️',title:'FGV 80',desc:'Atingir 80% em 100 questões FGV',current:fgvAcc,target:80,extra:fgvTot>=100},
+    {id:'magneto',icon:'🧲',title:'Magneto',desc:'Resolver 100 questões de eletromagnetismo',current:magnetQ,target:100},
+    {id:'edital50',icon:'🗂️',title:'Edital 50',desc:'Alcançar 50% de cobertura ponderada',current:weightedCoverage(s),target:50,suffix:'%'},
+    {id:'sim70',icon:'📝',title:'Simulado consistente',desc:'Alcançar 70% no melhor simulado',current:simBest,target:70,suffix:'%'},
+    {id:'diag10',icon:'🚀',title:'Evolução visível',desc:'Melhorar 10 p.p. no diagnóstico',current:diagGain,target:10,suffix:' p.p.'},
+  ] as Array<{id:string;icon:string;title:string;desc:string;current:number;target:number;suffix?:string;extra?:boolean}>
+  return list.map(a=>{const raw=Number.isFinite(a.current)?a.current:0;const done=raw>=a.target&&(a.extra===undefined||a.extra);const pct=Math.max(0,Math.min(100,Math.round(raw/a.target*100)));return {...a,done,pct,currentLabel:`${raw}${a.suffix||''}`,targetLabel:`${a.target}${a.suffix||''}`}})
+}

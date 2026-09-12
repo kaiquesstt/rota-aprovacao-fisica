@@ -1,3 +1,7 @@
+## v2.3.2
+
+Correções: cronômetro/início, modo tela inteira, exclusão de blocos de questões e retorno das conquistas.
+
 # Rota da Aprovação 2.2
 
 Versão com refinamento visual ampliado, tipografia maior e layout desktop menos compacto.
