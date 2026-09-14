@@ -49,3 +49,10 @@ Este projeto já está configurado para o repositório:
 O `vite.config.ts` usa `base: '/rota-aprovacao-fisica/'`.
 
 No GitHub, configure **Settings → Pages → Source: GitHub Actions**. O workflow `.github/workflows/deploy.yml` faz o restante automaticamente.
+
+
+## v2.5 — Sessão integrada
+- Cronômetro baseado em tempo real, sem perder minutos em abas de segundo plano.
+- Meta regressiva flexível: após 00:00, continua contando o tempo extra até encerrar.
+- Registro de questões e acertos dentro da própria sessão de estudo.
+- Encerramento único salva tempo + questões e atualiza gráficos/desempenho.

@@ -16,12 +16,12 @@ export function Layout({page,setPage,children}:{page:PageId;setPage:(p:PageId)=>
   const [menuOpen,setMenuOpen]=useState(false),[search,setSearch]=useState(''),[searchOpen,setSearchOpen]=useState(false)
   const fileRef=useRef<HTMLInputElement>(null),menuRef=useRef<HTMLDivElement>(null),searchRef=useRef<HTMLInputElement>(null),searchBoxRef=useRef<HTMLDivElement>(null)
 
-  useEffect(()=>{if(!timer.running)return;const h=window.setInterval(tick,1000);return()=>window.clearInterval(h)},[timer.running,tick])
+  useEffect(()=>{if(!timer.running)return;tick();const h=window.setInterval(tick,1000);const sync=()=>tick();window.addEventListener('focus',sync);document.addEventListener('visibilitychange',sync);return()=>{window.clearInterval(h);window.removeEventListener('focus',sync);document.removeEventListener('visibilitychange',sync)}},[timer.running,tick])
   useEffect(()=>{const onClick=(e:MouseEvent)=>{const n=e.target as Node;if(menuRef.current&&!menuRef.current.contains(n))setMenuOpen(false);if(searchBoxRef.current&&!searchBoxRef.current.contains(n))setSearchOpen(false)};document.addEventListener('mousedown',onClick);return()=>document.removeEventListener('mousedown',onClick)},[])
   useEffect(()=>{const h=(e:KeyboardEvent)=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();searchRef.current?.focus();setSearchOpen(true)}};window.addEventListener('keydown',h);return()=>window.removeEventListener('keydown',h)},[])
 
   const timerTopic=topics.find(t=>t.id===timer.topicId)
-  const hh=Math.floor(timer.seconds/3600),mm=String(Math.floor((timer.seconds%3600)/60)).padStart(2,'0'),ss=String(timer.seconds%60).padStart(2,'0'),timerText=hh>0?`${String(hh).padStart(2,'0')}:${mm}:${ss}`:`${mm}:${ss}`
+  const timerElapsed=Math.max(0,timer.seconds),timerTarget=timer.mode==='countdown'?timer.preset*60:0,timerOver=timer.mode==='countdown'&&timerTarget>0&&timerElapsed>=timerTarget,timerShown=timer.mode==='countup'?timerElapsed:timerOver?timerElapsed-timerTarget:Math.max(0,timerTarget-timerElapsed),hh=Math.floor(timerShown/3600),mm=String(Math.floor((timerShown%3600)/60)).padStart(2,'0'),ss=String(timerShown%60).padStart(2,'0'),timerText=`${timerOver?'+':''}${hh>0?`${String(hh).padStart(2,'0')}:${mm}:${ss}`:`${mm}:${ss}`}`
   const firstName=(data.settings.displayName||'Kaique').trim().split(/\s+/)[0]||'Kaique'
   const q=search.trim().toLowerCase()
   const topicResults=useMemo(()=>q?topics.filter(t=>`${t.title} ${t.group} ${t.discipline} ${t.officialItem}`.toLowerCase().includes(q)).slice(0,6):[],[q])
@@ -36,7 +36,7 @@ export function Layout({page,setPage,children}:{page:PageId;setPage:(p:PageId)=>
       <div className="brand"><div className="brand-mark">⚛</div><div><strong>Rota da Aprovação</strong><span>SEDUC-PA • Física • Marabá</span></div></div>
       <nav>{nav.map(item=>{const I=item.icon;return <button key={item.id} className={page===item.id?'active':''} onClick={()=>setPage(item.id)}><I size={18}/><span>{item.label}</span></button>})}</nav>
       <div className="sidebar-focus"><Zap size={18}/><div><b>Modo foco</b><span>Mais foco. Mais resultados.</span></div></div>
-      <div className="sidebar-foot"><b>{daysToExam()} dias</b><span>até 29/11/2026</span><small>v2.4 • Offline-first</small></div>
+      <div className="sidebar-foot"><b>{daysToExam()} dias</b><span>até 29/11/2026</span><small>v2.5 • Offline-first</small></div>
     </aside>
     <main className="main-area">
       <header className="topbar">

@@ -47,5 +47,5 @@ export interface AppState {
   [key:string]:unknown
 }
 
-export interface TimerState { topicId:string|null; seconds:number; running:boolean; startedAt:number|null; preset:number; type:string; mode:'countdown'|'countup' }
+export interface TimerState { topicId:string|null; seconds:number; running:boolean; startedAt:number|null; anchorSeconds:number; preset:number; type:string; mode:'countdown'|'countup'; questionTotal:number; questionCorrect:number; questionBank:string; questionYear:number; questionReason:string }
 export type PageId = 'home'|'plan'|'study'|'contents'|'questions'|'reviews'|'performance'|'simulations'|'materials'|'history'|'settings'
