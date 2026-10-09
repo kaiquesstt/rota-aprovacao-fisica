@@ -28,6 +28,7 @@ export function Layout({page,setPage,children}:{page:PageId;setPage:(p:PageId)=>
   const formulaResults=useMemo(()=>q?data.formulas.filter(f=>`${f.title} ${f.topic} ${f.formula}`.toLowerCase().includes(q)).slice(0,4):[],[q,data.formulas])
 
   const openTopic=(title:string)=>{sessionStorage.setItem('rota-content-query',title);setPage('contents');setSearch('');setSearchOpen(false)}
+  const lastBackup=data.meta?.lastBackupAt;const backupDays=lastBackup?Math.floor((Date.now()-new Date(lastBackup).getTime())/86400000):999;
   const handleExport=()=>{const next=exportBackup(data);replaceData(next);setMenuOpen(false);notify('Backup exportado','Seu arquivo JSON foi preparado para download.')}
   const handleImport=async(e:React.ChangeEvent<HTMLInputElement>)=>{const f=e.target.files?.[0]; if(!f)return; try{replaceData(migrateState(JSON.parse(await f.text())));notify('Backup importado com sucesso','Os dados foram carregados nesta versão.')}catch{notify('Backup inválido','Não foi possível ler esse arquivo.','danger')} finally {e.target.value=''; setMenuOpen(false)}}
 
@@ -56,6 +57,7 @@ export function Layout({page,setPage,children}:{page:PageId;setPage:(p:PageId)=>
         </div>
       </header>
       {timer.topicId&&<div className="persistent-timer"><div className="timer-dot"></div><div className="persistent-timer-copy"><small>Sessão ativa</small><strong>{timerTopic?.title||'Conteúdo selecionado'}</strong></div><div className="timer-clock">{timerText}</div><button onClick={toggle}>{timer.running?<Pause size={16}/>:<Play size={16}/>}</button><button onClick={finish} title="Encerrar sessão"><Square size={16}/></button></div>}
+      {backupDays!==null&&backupDays>=7&&<div className="backup-reminder"><Download size={16}/><span>{backupDays>=999?'Você ainda não exportou nenhum backup.':`Seu último backup foi há ${backupDays} dias.`} Seus dados ficam só neste navegador.</span><button onClick={handleExport}>Exportar agora</button></div>}
       <div className="page-wrap">{children}</div>
     </main>
   </div>

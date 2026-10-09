@@ -1,6 +1,7 @@
 import Dexie, { type Table } from 'dexie'
 import type { AppState } from '../types'
 import { formulaSeed } from '../data/formulas'
+import { APP_VERSION } from '../version'
 
 export const APP_KEY='seduc-pa-fisica-maraba-v2'
 const OLD_DB_NAME='rota-aprovacao-fisica-db'
@@ -87,7 +88,7 @@ export async function persistState(state:AppState){
 
 export function exportBackup(state:AppState){
   const next={...state,meta:{...(state.meta||{}),lastBackupAt:new Date().toISOString(),updatedAt:new Date().toISOString()}}
-  const blob=new Blob([JSON.stringify({...next,exportedAt:new Date().toISOString(),appVersion:'2.5.0'},null,2)],{type:'application/json'})
+  const blob=new Blob([JSON.stringify({...next,exportedAt:new Date().toISOString(),appVersion:APP_VERSION},null,2)],{type:'application/json'})
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`backup-rota-aprovacao-fisica-${new Date().toISOString().slice(0,10)}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)
   return next
 }
