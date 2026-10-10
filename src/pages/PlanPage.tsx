@@ -1,7 +1,30 @@
-import { CalendarDays, CheckCircle2, Clock3, FileQuestion, Target } from 'lucide-react'
-import { topics } from '../data/topics'
+import { CalendarDays, Gauge, Play, TrendingUp } from 'lucide-react'
 import { useAppStore } from '../store/useAppStore'
-import { dueReviews, nextTopic, totalQuestions, totalStudySeconds, weightedCoverage } from '../lib/analytics'
-import { fmtDuration } from '../lib/date'
+import { paceInfo, suggestionQueue } from '../lib/analytics'
+import type { PageId } from '../types'
 
-export function PlanPage(){const s=useAppStore(x=>x.data),next=nextTopic(s),due=dueReviews(s),pins=topics.filter(t=>s.pinnedTopics.includes(t.id)).slice(0,6);return <div><div className="page-heading"><div><span className="eyebrow">MEU PLANO</span><h1>Visão semanal sem excesso de organização.</h1><p>O plano serve para enxergar compromissos; você continua decidindo como usar seu tempo.</p></div></div><div className="metric-row compact"><div className="metric-card"><div className="metric-icon"><Clock3/></div><div><small>Tempo acumulado</small><strong>{fmtDuration(totalStudySeconds(s))}</strong></div></div><div className="metric-card"><div className="metric-icon"><FileQuestion/></div><div><small>Questões</small><strong>{totalQuestions(s)}</strong></div></div><div className="metric-card"><div className="metric-icon"><Target/></div><div><small>Edital</small><strong>{weightedCoverage(s)}%</strong></div></div><div className="metric-card"><div className="metric-icon"><CheckCircle2/></div><div><small>Revisões hoje</small><strong>{due.length}</strong></div></div></div><div className="plan-grid"><section className="panel"><div className="panel-title"><div><span className="eyebrow">FOCO DA SEMANA</span><h3>Conteúdos fixados</h3></div><CalendarDays/></div>{pins.length?pins.map(t=><div className="plan-row" key={t.id}><div><b>{t.title}</b><small>{t.discipline} • {t.group}</small></div><span>{t.minutes} min</span></div>):<div className="empty-state">Nenhum conteúdo fixado ainda. Use o Centro do Conteúdo para escolher seus focos.</div>}</section><aside className="panel"><span className="eyebrow">LEITURA DO MOMENTO</span><h3>O que merece atenção</h3>{next&&<div className="focus-suggestion"><b>{next.title}</b><span>{next.discipline} • {next.group}</span><p>Este conteúdo aparece como sugestão pelos seus dados atuais, mas a decisão final é sua.</p></div>}<div className="muted-box">{due.length?`Há ${due.length} revisão(ões) pendente(s).`:'Sua fila de revisões está em dia.'}</div></aside></div></div>}
+const n1=(x:number)=>x.toFixed(1).replace('.',',')
+
+export function PlanPage({go}:{go?:(p:PageId)=>void}){
+  const s=useAppStore(x=>x.data),startTimer=useAppStore(x=>x.startTimer)
+  const pace=paceInfo(s)
+  const queue=suggestionQueue(s,8,2)
+  const pct=Math.round(pace.dominated/pace.total*100)
+  return <div>
+    <div className="page-heading"><div><span className="eyebrow">RITMO ATÉ A PROVA</span><h1>Quanto falta e em que velocidade.</h1><p>Uma unidade dominada é uma lista de questões aprovada. O ritmo considera as unidades que você marcou como dominadas nos últimos 7 dias.</p></div></div>
+    <div className="metric-row compact">
+      <div className="metric-card"><div className="metric-icon"><Gauge/></div><div><small>Necessário</small><strong>{n1(pace.neededPerDay)}/dia</strong><span>{pace.remaining} unidades em {pace.days} dias</span></div></div>
+      <div className="metric-card"><div className="metric-icon"><TrendingUp/></div><div><small>Seu ritmo</small><strong>{n1(pace.ratePerDay)}/dia</strong><span>{pace.last7} dominadas nos últimos 7 dias</span></div></div>
+      <div className="metric-card"><div className="metric-icon"><CalendarDays/></div><div><small>Projeção em 29/11</small><strong>{pace.projected} de {pace.total}</strong><span>{pace.onTrack?'no ritmo atual, dá para cobrir tudo':'no ritmo atual, parte do edital fica de fora'}</span></div></div>
+    </div>
+    <div className="pace-grid">
+      <section className="panel"><div className="panel-title"><div><span className="eyebrow">POR DISCIPLINA</span><h3>{pace.dominated} de {pace.total} unidades dominadas ({pct}%)</h3></div></div>
+        <div className="pace-disciplines">{pace.byDiscipline.map(d=>{const done=d.total-d.remaining;return <div key={d.name}><div className="pace-row-head"><b>{d.name}</b><span>{done}/{d.total} · faltam {d.remaining} ({n1(d.remaining/pace.days)}/dia)</span></div><div className="pace-bar"><i style={{width:`${Math.round(done/Math.max(1,d.total)*100)}%`}}></i></div></div>})}</div>
+        {!pace.onTrack&&<div className="muted-box">Se o ritmo não fechar, priorize pelo peso: Física vale 30 questões e é o tema da discursiva, mas os Básicos precisam de 50% sozinhos. A fila ao lado já faz essa conta.</div>}
+      </section>
+      <aside className="panel"><div className="panel-title"><div><span className="eyebrow">FILA SUGERIDA</span><h3>Próximas unidades</h3><p className="cut-note">No máximo duas por disciplina, para alternar matérias.</p></div></div>
+        <div className="queue-list">{queue.map(({t,reasons},i)=><div className="queue-row" key={t.id}><span className="queue-n">{i+1}</span><div><b>{t.title}</b><small>{t.discipline} • {t.officialItem}</small>{reasons.length>0&&<em>{reasons.slice(0,2).join(' · ')}</em>}</div><button title="Estudar agora" onClick={()=>{startTimer(t.id,t.minutes);go?.('study')}}><Play size={15}/></button></div>)}</div>
+      </aside>
+    </div>
+  </div>
+}

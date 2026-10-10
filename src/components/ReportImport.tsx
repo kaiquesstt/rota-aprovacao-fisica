@@ -9,15 +9,15 @@ const mmss=(s:number)=>`${Math.floor(s/60)}:${String(Math.round(s%60)).padStart(
 
 export function ReportImport(){
   const importReport=useAppStore(x=>x.importReport)
-  const [code,setCode]=useState(''),[error,setError]=useState(''),[report,setReport]=useState<ImportedReport|null>(null),[topicId,setTopicId]=useState(''),[options,setOptions]=useState<string[]>([])
+  const [code,setCode]=useState(''),[error,setError]=useState(''),[report,setReport]=useState<ImportedReport|null>(null),[topicId,setTopicId]=useState(''),[options,setOptions]=useState<string[]>([]),[reason,setReason]=useState('')
   const read=()=>{
     try{
       const r=parseReportCode(code),m=matchTopics(r)
       setReport(r);setError('');setOptions(m.candidates.map(t=>t.id));setTopicId(m.exact?.id||m.candidates[0]?.id||'')
     }catch(e){setReport(null);setError(e instanceof Error?e.message:'Não foi possível ler o código.')}
   }
-  const clear=()=>{setCode('');setReport(null);setError('');setTopicId('')}
-  const confirm=()=>{if(report&&topicId&&importReport(report,topicId))clear()}
+  const clear=()=>{setCode('');setReport(null);setError('');setTopicId('');setReason('')}
+  const confirm=()=>{if(report&&topicId&&importReport(report,topicId,reason))clear()}
   const acc=report?Math.round(report.correct/report.total*100):0
   const avg=report&&report.total&&report.durationSeconds?report.durationSeconds/report.total:0
   const slow=report?[...report.perQuestion].sort((a,b)=>b.seconds-a.seconds).slice(0,3):[]
@@ -44,6 +44,7 @@ export function ReportImport(){
         </select>
       </label>
       {matched&&<small className="muted">{matched.group} • {matched.officialItem}</small>}
+      {report.correct<report.total&&<label>Causa principal dos erros <span>(opcional; cria um registro na página Erros)</span><select value={reason} onChange={e=>setReason(e.target.value)}><option value="">Não registrar causa</option><option>Erro conceitual</option><option>Erro de cálculo</option><option>Interpretação</option><option>Fórmula esquecida</option><option>Distração</option></select></label>}
       <div className="disc-actions"><button className="cta" disabled={!topicId} onClick={confirm}><FileCheck2 size={16}/> Confirmar importação</button><button className="secondary" onClick={clear}><X size={16}/> Cancelar</button></div>
     </div>}
   </section>

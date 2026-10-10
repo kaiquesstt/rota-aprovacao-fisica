@@ -1,3 +1,16 @@
+## v2.7.0
+- **Conteúdos reorganizados**: de 615 microconteúdos para 180 unidades, cada uma do tamanho de uma lista de questões. Repetições entre itens do edital foram eliminadas (ex.: campos de fio/espira/solenoide aparecem uma vez só). O progresso, as questões, o tempo e os erros já registrados foram levados para as novas unidades. Uma unidade só fica “Dominado” se todas as partes que ela juntou estavam dominadas.
+- **Mapa de conteúdos em três níveis**: área → item do edital → unidades.
+- **Ritmo até a prova** (substitui “Meu plano”): unidades por dia necessárias, ritmo dos últimos 7 dias, projeção e fila sugerida.
+- **Página de Erros**: erros por causa e disciplina, marcar como resolvido, voltar a estudar. A importação de relatórios pode registrar a causa.
+- **Discursiva no painel de corte**: média dos treinos contra o mínimo de 5 pontos.
+- **Removidos**: página Materiais, fila e alertas de revisão, versão legada v14.
+- **Conquistas** refeitas para o método atual (listas importadas, unidades dominadas, corte, discursiva).
+- **Mapa de calor** das últimas 5 semanas, por dia da semana.
+- **Duas abas abertas** não se sobrescrevem mais: a aba que salva atualiza a outra.
+- **Datas** calculadas no fuso local (antes, depois das 21h algumas telas mostravam o dia seguinte).
+- **Publicação**: ações do GitHub atualizadas (fim do aviso do Node 20).
+
 ## v2.6.0
 - **Importar relatório das listas de questões**: cole o código `ROTA1:` do fim da lista em Questões e o app registra acertos, tempo total e tempo por questão. Formato em `docs/FORMATO-RELATORIO.md`.
 - **Banca**: registros novos não vêm mais como “FGV” por padrão. Listas importadas entram como “Lista própria”.
@@ -49,7 +62,6 @@ A aplicação preserva a chave antiga:
 
 No primeiro carregamento ela procura, nessa ordem de segurança, os dados do LocalStorage da versão anterior, o IndexedDB antigo e o novo IndexedDB. O conjunto mais recente é migrado para o formato 2.0.
 
-A versão v14 original está incluída em `public/legacy-v14.html` como rota de recuperação.
 
 ## Publicação
 Este projeto já está configurado para o repositório:

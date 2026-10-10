@@ -7,13 +7,13 @@ import { CutPanel } from '../components/CutPanel'
 import { useAppStore } from '../store/useAppStore'
 import { topics } from '../data/topics'
 import { overallAccuracy } from '../lib/analytics'
-import { achievementData, daysToExam, disciplineStats, dueReviews, nextTopic, priorityInfo, readinessInfo, recentActivity, statusCounts, streak, totalQuestions, totalStudySeconds, weightedCoverage, dailySeries, xpInfo } from '../lib/analytics'
+import { achievementData, daysToExam, disciplineStats, nextTopic, paceInfo, suggestionQueue, priorityInfo, readinessInfo, recentActivity, statusCounts, streak, totalQuestions, totalStudySeconds, weightedCoverage, dailySeries, xpInfo } from '../lib/analytics'
 import { fmtDuration, today } from '../lib/date'
 import type { PageId } from '../types'
 
 export function HomePage({go}:{go:(p:PageId)=>void}){
   const s=useAppStore(x=>x.data),startTimer=useAppStore(x=>x.startTimer)
-  const next=nextTopic(s),nextWhy=next?priorityInfo(s,next).reasons:[],ready=readinessInfo(s),qTotal=totalQuestions(s),due=dueReviews(s),series=dailySeries(s,15),status=statusCounts(s),xp=xpInfo(s),disc=disciplineStats(s).filter(x=>x.totalTopics>0),recent=recentActivity(s),achievements=achievementData(s)
+  const next=nextTopic(s),nextWhy=next?priorityInfo(s,next).reasons:[],ready=readinessInfo(s),qTotal=totalQuestions(s),pace=paceInfo(s),openErr=s.errors.filter(e=>!e.resolved).length,upNext=suggestionQueue(s,3,1,next?[next.id]:[]).map(x=>x.t),series=dailySeries(s,15),status=statusCounts(s),xp=xpInfo(s),disc=disciplineStats(s).filter(x=>x.totalTopics>0),recent=recentActivity(s),achievements=achievementData(s)
   const [showAllAchievements,setShowAllAchievements]=useState(false)
   const unlocked=achievements.filter(a=>a.done).length
   const statusData=[{name:'Dominado',value:status.dominado,color:'#18a47c'},{name:'Revisando',value:status.revisando,color:'#4f9cf2'},{name:'Estudando',value:status.estudando,color:'#e9ad3e'},{name:'Não iniciado',value:status.nao_iniciado,color:'#c8d5df'}]
@@ -22,12 +22,12 @@ export function HomePage({go}:{go:(p:PageId)=>void}){
       <div className="page-heading"><div><span className="eyebrow">COMANDO DE ESTUDO</span><h1>Seu centro de controle para a aprovação em Física.</h1></div><div className="quote">“Disciplina hoje. Aprovação amanhã.”</div></div>
       <div className="today-row">
         <article className="today-hero"><span className="eyebrow light">HOJE</span><h2>{new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'})}</h2><p>Foco, constância e propósito. Você está construindo um resultado, sessão por sessão.</p><div className="mountain-art"><span></span><span></span><span></span></div><small>{daysToExam()} dias até a prova</small></article>
-        <article className="next-action"><div className="next-head"><div className="round-icon"><Zap size={21}/></div><div><span className="eyebrow">PRÓXIMA AÇÃO SUGERIDA</span><h2>{due.length?`Revisar ${due.length} conteúdo${due.length>1?'s':''}`:next?.title||'Escolher um conteúdo'}</h2></div></div><p>{due.length?'Há revisões vencidas. Você decide se quer fazê-las agora ou seguir para conteúdo novo.':next?`${next.discipline} • ${next.group} • cerca de ${next.minutes} min`:'Abra o mapa de conteúdos para começar.'}</p>{!due.length&&nextWhy.length>0&&<p className="next-why">Por quê: {nextWhy.slice(0,3).join(' · ')}.</p>}<button className="cta" onClick={()=>{if(due.length)go('reviews');else if(next){startTimer(next.id,next.minutes);go('study')}}}><Play size={17}/> Iniciar agora</button></article>
+        <article className="next-action"><div className="next-head"><div className="round-icon"><Zap size={21}/></div><div><span className="eyebrow">PRÓXIMA AÇÃO SUGERIDA</span><h2>{next?.title||'Escolher um conteúdo'}</h2></div></div><p>{next?`${next.discipline} • ${next.group} • cerca de ${next.minutes} min`:'Abra o mapa de conteúdos para começar.'}</p>{nextWhy.length>0&&<p className="next-why">Por quê: {nextWhy.slice(0,3).join(' · ')}.</p>}<button className="cta" onClick={()=>{if(next){startTimer(next.id,next.minutes);go('study')}}}><Play size={17}/> Iniciar agora</button></article>
       </div>
       <div className="quick-actions">
         <button onClick={()=>go('questions')}><FileQuestion/><span><b>Questões</b><small>Registre por assunto e banca</small></span></button>
         <button onClick={()=>go('study')}><Clock3/><span><b>Cronômetro</b><small>Estudo focado com método</small></span></button>
-        <button onClick={()=>go('reviews')}><RotateCcw/><span><b>Revisões</b><small>Reforce o que já estudou</small></span></button>
+        <button onClick={()=>go('errors')}><RotateCcw/><span><b>Erros</b><small>{openErr} em aberto para retomar</small></span></button>
         <button onClick={()=>go('performance')}><BarChart3/><span><b>Desempenho</b><small>Veja sua evolução gráfica</small></span></button>
       </div>
       <div className="metric-row">
@@ -51,9 +51,9 @@ export function HomePage({go}:{go:(p:PageId)=>void}){
       </div>
     </section>
     <aside className="right-rail">
-      <article className="rail-card dark"><div className="rail-title"><CalendarIcon/> <b>Minha agenda da semana</b></div><div className="week-days">{Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()-((d.getDay()+6)%7)+i);return <div className={d.toISOString().slice(0,10)===today()?'today':''} key={i}><small>{['SEG','TER','QUA','QUI','SEX','SÁB','DOM'][i]}</small><b>{d.getDate()}</b></div>})}</div><div className="agenda-list">{due.slice(0,4).map(r=>{const t=topics.find(x=>x.id===r.topicId);return <div key={r.id}><span>Revisão</span><b>{t?.title||'Conteúdo'}</b></div>})}{!due.length&&<><div><span>Hoje</span><b>Escolher 1 conteúdo principal</b></div><div><span>Questões</span><b>Registrar um bloco de exercícios</b></div><div><span>Revisão</span><b>Manter a fila em dia</b></div></>}</div><button onClick={()=>go('plan')}>Ver plano completo →</button></article>
+      <article className="rail-card dark pace-rail"><div className="rail-title"><CalendarIcon/> <b>Ritmo até a prova</b></div><div className="pace-big"><strong>{pace.neededPerDay.toFixed(1).replace('.',',')}</strong><span>unidades por dia para dominar as {pace.remaining} que faltam em {pace.days} dias</span></div><div className={`pace-status ${pace.onTrack?'ok':'behind'}`}>{pace.last7?`Últimos 7 dias: ${pace.last7} dominada${pace.last7>1?'s':''} (${pace.ratePerDay.toFixed(1).replace('.',',')}/dia)`:'Nenhuma unidade dominada nos últimos 7 dias'}</div><div className="agenda-list">{upNext.map(t=><div key={t.id}><span>{t.discipline}</span><b>{t.title}</b></div>)}</div><button onClick={()=>go('plan')}>Ver ritmo completo →</button></article>
       <article className="rail-card"><span className="eyebrow">MENSAGEM DO DIA</span><p className="daily-message">“Grandes resultados são construídos com pequenas ações, todos os dias.”</p></article>
-      <article className="rail-card"><span className="eyebrow">RESUMO</span><h3>{status.dominado} conteúdos dominados</h3><p>{due.length} revisão(ões) pendente(s) e {s.errors.filter(e=>!e.resolved).length} erro(s) abertos.</p><button className="secondary" onClick={()=>go('performance')}>Abrir desempenho</button></article>
+      <article className="rail-card"><span className="eyebrow">RESUMO</span><h3>{status.dominado} de {topics.length} unidades dominadas</h3><p>{pace.remaining} unidades por dominar e {openErr} erro(s) em aberto.</p><button className="secondary" onClick={()=>go('performance')}>Abrir desempenho</button></article>
     </aside>
   </div>
 }

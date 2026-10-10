@@ -1,4 +1,4 @@
-import { ShieldAlert, ShieldCheck, ShieldQuestion } from 'lucide-react'
+import { PenLine, ShieldAlert, ShieldCheck, ShieldQuestion } from 'lucide-react'
 import type { AppState } from '../types'
 import { CUT_LINE, MIN_PART_QUESTIONS, partStats, type PartStat, type PartStatus } from '../lib/analytics'
 
@@ -25,11 +25,22 @@ function PartCard({p,simulation}:{p:PartStat;simulation?:{total:number;correct:n
 export function CutPanel({s}:{s:AppState}){
   const ps=partStats(s)
   const lastSplit=[...s.simulations].reverse().find(x=>(x.basicTotal||0)>0||(x.specificTotal||0)>0)
+  // Discursiva: 2 questões de 5 pontos; eliminado com menos de 5 pontos no total (item 8.28)
+  const scored=s.discursives.filter(d=>d.score!==null)
+  const discAvg=scored.length?scored.reduce((a,d)=>a+(d.score as number)/d.maxScore,0)/scored.length:null
+  const discPts=discAvg===null?null:Math.round(discAvg*100)/10
+  const discStatus:PartStatus=scored.length<2||discPts===null?'sem_dados':discPts<5?'risco':discPts<6?'atencao':'seguro'
   return <article className="panel cut-panel">
     <div className="panel-title"><div><span className="eyebrow">LINHA DE CORTE</span><h3>Básicos e Específicos, cada um por si</h3><p className="cut-note">Pelo edital (item 8.16), é preciso acertar pelo menos {CUT_LINE}% em <b>cada</b> parte, separadamente, e não zerar nenhum módulo. A estimativa aparece a partir de {MIN_PART_QUESTIONS} questões registradas em cada parte.</p></div></div>
     <div className="cut-grid">
       <PartCard p={ps.basicos} simulation={lastSplit&&lastSplit.basicTotal?{total:lastSplit.basicTotal,correct:lastSplit.basicCorrect||0}:undefined}/>
       <PartCard p={ps.especificos} simulation={lastSplit&&lastSplit.specificTotal?{total:lastSplit.specificTotal,correct:lastSplit.specificCorrect||0}:undefined}/>
+    </div>
+    <div className={`cut-disc cut-${discStatus}`}>
+      <PenLine size={18}/>
+      <div><b>Prova discursiva</b><small>2 questões de 5 pontos • mínimo de 5 pontos somados</small></div>
+      <strong>{discPts===null?'—':`${String(discPts).replace('.',',')} / 10`}</strong>
+      <span className="cut-badge">{scored.length<2?`${scored.length} treino${scored.length===1?'':'s'} com nota`:statusText[discStatus]}</span>
     </div>
   </article>
 }

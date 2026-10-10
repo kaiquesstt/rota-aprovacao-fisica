@@ -23,7 +23,7 @@ export interface DiscursiveRecord { id:string; date:string; createdAt?:string; t
 export interface FormulaItem { id:string; topic:string; title:string; formula:string; note:string; lapses?:number; last?:string|null; favorite?:boolean }
 export interface DiagnosticAttempt { id?:string; date?:string; total?:{pct:number}; [key:string]:unknown }
 export interface AppSettings { weeklyHoursGoal:number; weeklyQuestionsGoal:number; dailyMinutesGoal:number; firstCycleTarget:string; theme:'light'|'dark'; focusPreset:number; sidebarCollapsed:boolean; displayName?:string }
-export interface AppMeta { updatedAt?:string; lastBackupAt?:string; migratedToReactAt?:string; sourceVersion?:string }
+export interface AppMeta { topicsRemappedAt?:string; updatedAt?:string; lastBackupAt?:string; migratedToReactAt?:string; sourceVersion?:string }
 export interface AppState {
   version:string
   progress:ProgressItem[]
@@ -49,4 +49,4 @@ export interface AppState {
 }
 
 export interface TimerState { topicId:string|null; seconds:number; running:boolean; startedAt:number|null; anchorSeconds:number; preset:number; type:string; mode:'countdown'|'countup'; questionTotal:number; questionCorrect:number; questionBank:string; questionYear:number; questionReason:string }
-export type PageId = 'home'|'plan'|'study'|'contents'|'questions'|'reviews'|'performance'|'simulations'|'materials'|'history'|'settings'|'discursive'
+export type PageId = 'home'|'plan'|'study'|'contents'|'questions'|'errors'|'performance'|'simulations'|'history'|'settings'|'discursive'

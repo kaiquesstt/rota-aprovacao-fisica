@@ -1,5 +1,7 @@
 import type { Topic } from '../types'
 import { topics } from '../data/topics'
+import { today } from './date'
+import { TOPIC_MIGRATION } from '../data/topicMigration'
 
 // Formato do código gerado pelas listas de questões em HTML:
 //   ROTA1:<JSON em base64 (UTF-8)>
@@ -44,14 +46,14 @@ export function parseReportCode(text:string):ImportedReport{
   const perQuestion=Array.isArray(d.perQuestion)?d.perQuestion.map((q:any,i:number)=>({n:Math.round(+q.n)||i+1,correct:!!q.correct,seconds:Math.max(0,Math.round(+q.seconds||0))})):[]
   const summed=perQuestion.reduce((a:number,q:{seconds:number})=>a+q.seconds,0)
   const durationSeconds=Math.max(0,Math.round(+d.durationSeconds||summed||0))
-  const date=typeof d.date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(d.date)?d.date:new Date().toISOString().slice(0,10)
+  const date=typeof d.date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(d.date)?d.date:today()
   const id=String(d.id||`${date}-${norm(String(d.topic||''))}-${total}-${correct}-${durationSeconds}`)
   return {id,topicId:d.topicId?String(d.topicId):undefined,topic:String(d.topic||d.topicTitle||''),discipline:d.discipline?String(d.discipline):undefined,date,total,correct,durationSeconds,perQuestion}
 }
 
 // Encontra o conteúdo do app correspondente ao relatório: id exato, título exato ou maior semelhança de palavras
 export function matchTopics(r:ImportedReport):{exact:Topic|null;candidates:Topic[]}{
-  if(r.topicId){const t=topics.find(x=>x.id===r.topicId);if(t)return {exact:t,candidates:[t]}}
+  if(r.topicId){const id=TOPIC_MIGRATION[r.topicId]||r.topicId;const t=topics.find(x=>x.id===id);if(t)return {exact:t,candidates:[t]}}
   const target=norm(r.topic)
   const pool=r.discipline?topics.filter(t=>norm(t.discipline)===norm(r.discipline!)):topics
   const exact=pool.find(t=>norm(t.title)===target)||null

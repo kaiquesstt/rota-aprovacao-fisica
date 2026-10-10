@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { BarChart3, BookOpen, CalendarDays, CheckCircle2, ChevronDown, Clock3, Download, FileQuestion, History, Home, Layers3, Library, Pause, PenLine, Play, Search, Settings, ShieldCheck, Square, Target, Upload, Zap } from 'lucide-react'
+import { BarChart3, BookOpen, CalendarDays, CheckCircle2, ChevronDown, CircleAlert, Clock3, Download, FileQuestion, History, Home, Layers3, Library, Pause, PenLine, Play, Search, Settings, ShieldCheck, Square, Target, Upload, Zap } from 'lucide-react'
 import type { PageId } from '../types'
 import { useAppStore } from '../store/useAppStore'
 import { topics } from '../data/topics'
@@ -9,7 +9,7 @@ import { notify } from '../lib/feedback'
 import { APP_VERSION } from '../version'
 
 const nav:Array<{id:PageId;label:string;icon:any}>=[
-  {id:'home',label:'Hoje',icon:Home},{id:'plan',label:'Meu plano',icon:CalendarDays},{id:'study',label:'Estudar',icon:BookOpen},{id:'contents',label:'Conteúdos',icon:Layers3},{id:'questions',label:'Questões',icon:FileQuestion},{id:'reviews',label:'Revisões',icon:CheckCircle2},{id:'performance',label:'Desempenho',icon:BarChart3},{id:'discursive',label:'Discursiva',icon:PenLine},{id:'simulations',label:'Simulados',icon:Target},{id:'materials',label:'Materiais',icon:Library},{id:'history',label:'Histórico',icon:History},
+  {id:'home',label:'Hoje',icon:Home},{id:'plan',label:'Ritmo',icon:CalendarDays},{id:'study',label:'Estudar',icon:BookOpen},{id:'contents',label:'Conteúdos',icon:Layers3},{id:'questions',label:'Questões',icon:FileQuestion},{id:'errors',label:'Erros',icon:CircleAlert},{id:'performance',label:'Desempenho',icon:BarChart3},{id:'discursive',label:'Discursiva',icon:PenLine},{id:'simulations',label:'Simulados',icon:Target},{id:'history',label:'Histórico',icon:History},
 ]
 
 export function Layout({page,setPage,children}:{page:PageId;setPage:(p:PageId)=>void;children:React.ReactNode}){
@@ -26,7 +26,6 @@ export function Layout({page,setPage,children}:{page:PageId;setPage:(p:PageId)=>
   const firstName=(data.settings.displayName||'Kaique').trim().split(/\s+/)[0]||'Kaique'
   const q=search.trim().toLowerCase()
   const topicResults=useMemo(()=>q?topics.filter(t=>`${t.title} ${t.group} ${t.discipline} ${t.officialItem}`.toLowerCase().includes(q)).slice(0,6):[],[q])
-  const formulaResults=useMemo(()=>q?data.formulas.filter(f=>`${f.title} ${f.topic} ${f.formula}`.toLowerCase().includes(q)).slice(0,4):[],[q,data.formulas])
 
   const openTopic=(title:string)=>{sessionStorage.setItem('rota-content-query',title);setPage('contents');setSearch('');setSearchOpen(false)}
   const lastBackup=data.meta?.lastBackupAt;const backupDays=lastBackup?Math.floor((Date.now()-new Date(lastBackup).getTime())/86400000):999;
@@ -43,17 +42,16 @@ export function Layout({page,setPage,children}:{page:PageId;setPage:(p:PageId)=>
     <main className="main-area">
       <header className="topbar">
         <div className="global-search" ref={searchBoxRef}>
-          <div className="search-shell input"><Search size={18}/><input ref={searchRef} value={search} onChange={e=>{setSearch(e.target.value);setSearchOpen(true)}} onFocus={()=>setSearchOpen(true)} placeholder="Buscar conteúdos, fórmulas ou recursos..."/><kbd>Ctrl K</kbd></div>
+          <div className="search-shell input"><Search size={18}/><input ref={searchRef} value={search} onChange={e=>{setSearch(e.target.value);setSearchOpen(true)}} onFocus={()=>setSearchOpen(true)} placeholder="Buscar conteúdos do edital..."/><kbd>Ctrl K</kbd></div>
           {searchOpen&&q&&<div className="search-results">
             {topicResults.length>0&&<div className="search-section"><span>CONTEÚDOS</span>{topicResults.map(t=><button key={t.id} onClick={()=>openTopic(t.title)}><BookOpen size={16}/><div><b>{t.title}</b><small>{t.discipline} • {t.group}</small></div></button>)}</div>}
-            {formulaResults.length>0&&<div className="search-section"><span>FÓRMULAS</span>{formulaResults.map(f=><button key={f.id} onClick={()=>{setPage('materials');setSearch('');setSearchOpen(false)}}><Zap size={16}/><div><b>{f.title}</b><small>{f.topic} • {f.formula}</small></div></button>)}</div>}
-            {!topicResults.length&&!formulaResults.length&&<div className="search-empty"><Search size={24}/><b>Nenhum resultado encontrado</b><span>Tente outro termo ou parte do nome do conteúdo.</span></div>}
+            {!topicResults.length&&<div className="search-empty"><Search size={24}/><b>Nenhum resultado encontrado</b><span>Tente outro termo ou parte do nome do conteúdo.</span></div>}
           </div>}
         </div>
         <div className="topbar-right">
           <div className="top-greeting"><small>{new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'})}</small><strong>Olá, Kaique!</strong><span>Constância transforma esforço em resultado.</span></div>
           <div className="profile-menu" ref={menuRef}><button className="profile-trigger" onClick={()=>setMenuOpen(v=>!v)} aria-expanded={menuOpen}><div className="avatar">K</div><div className="profile-copy"><b>{firstName}</b><span>Ferramentas e backup</span></div><ChevronDown size={16}/></button>
-            {menuOpen&&<div className="profile-dropdown"><div className="dropdown-head"><div className="avatar small">K</div><div><b>Olá, Kaique!</b><span>Configurações, backup e recursos menos frequentes.</span></div></div><button onClick={()=>{setPage('settings');setMenuOpen(false)}}><Settings size={15}/> Configurações</button><button onClick={handleExport}><Download size={15}/> Exportar backup</button><button onClick={()=>fileRef.current?.click()}><Upload size={15}/> Importar backup</button><a href="./legacy-v14.html" onClick={()=>setMenuOpen(false)}><ShieldCheck size={15}/> Abrir versão anterior</a><input ref={fileRef} type="file" accept=".json,application/json" hidden onChange={handleImport}/></div>}
+            {menuOpen&&<div className="profile-dropdown"><div className="dropdown-head"><div className="avatar small">K</div><div><b>Olá, Kaique!</b><span>Configurações, backup e recursos menos frequentes.</span></div></div><button onClick={()=>{setPage('settings');setMenuOpen(false)}}><Settings size={15}/> Configurações</button><button onClick={handleExport}><Download size={15}/> Exportar backup</button><button onClick={()=>fileRef.current?.click()}><Upload size={15}/> Importar backup</button><input ref={fileRef} type="file" accept=".json,application/json" hidden onChange={handleImport}/></div>}
           </div>
         </div>
       </header>

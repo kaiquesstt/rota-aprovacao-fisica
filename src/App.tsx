@@ -3,17 +3,17 @@ import { Layout } from './components/Layout'
 import { AchievementCelebration, FeedbackCenter } from './components/GlobalOverlays'
 import type { PageId } from './types'
 import { useAppStore } from './store/useAppStore'
-import { loadInitialState } from './lib/storage'
+import { APP_KEY, loadInitialState, migrateState } from './lib/storage'
+import { notify } from './lib/feedback'
 import { achievementData, type AchievementInfo } from './lib/analytics'
 import { HomePage } from './pages/HomePage'
 import { PlanPage } from './pages/PlanPage'
 import { StudyPage } from './pages/StudyPage'
 import { ContentsPage } from './pages/ContentsPage'
 import { QuestionsPage } from './pages/QuestionsPage'
-import { ReviewsPage } from './pages/ReviewsPage'
+import { ErrorsPage } from './pages/ErrorsPage'
 import { PerformancePage } from './pages/PerformancePage'
 import { SimulationsPage } from './pages/SimulationsPage'
-import { MaterialsPage } from './pages/MaterialsPage'
 import { HistoryPage } from './pages/HistoryPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { DiscursivePage } from './pages/DiscursivePage'
@@ -26,6 +26,8 @@ export default function App(){
   const previousUnlocked=useRef<Set<string>|null>(null)
 
   useEffect(()=>{loadInitialState().then(({state,source})=>hydrate(state,source))},[hydrate])
+  // Outra aba salvou: carrega os dados dela em vez de sobrescrever (evita perder registros com duas abas abertas)
+  useEffect(()=>{const h=(e:StorageEvent)=>{if(e.key!==APP_KEY||!e.newValue)return;try{useAppStore.getState().syncFromOtherTab(migrateState(JSON.parse(e.newValue)));notify('Dados atualizados','Registros feitos em outra aba foram carregados aqui.','info')}catch{}};window.addEventListener('storage',h);return()=>window.removeEventListener('storage',h)},[])
   useEffect(()=>{const h=(e:KeyboardEvent)=>{if(e.altKey&&e.key==='1')setPage('home');if(e.altKey&&e.key==='2')setPage('contents');if(e.altKey&&e.key==='3')setPage('questions');if(e.altKey&&e.key==='4')setPage('performance')};window.addEventListener('keydown',h);return()=>window.removeEventListener('keydown',h)},[])
   useEffect(()=>{
     if(!hydrated)return
@@ -39,6 +41,6 @@ export default function App(){
 
   const closeCelebration=()=>setCelebrationQueue(q=>{const first=q[0];if(first)markSeen(first.id);return q.slice(1)})
   if(!hydrated)return <div className="loading-screen"><div className="loader"></div><strong>Preparando sua Rota da Aprovação {APP_VERSION}…</strong><span>Lendo seu progresso com segurança.</span></div>
-  const pages:Record<PageId,React.ReactNode>={home:<HomePage go={setPage}/>,plan:<PlanPage/>,study:<StudyPage/>,contents:<ContentsPage go={setPage}/>,questions:<QuestionsPage/>,reviews:<ReviewsPage/>,performance:<PerformancePage/>,simulations:<SimulationsPage/>,materials:<MaterialsPage/>,history:<HistoryPage/>,settings:<SettingsPage/>,discursive:<DiscursivePage/>}
+  const pages:Record<PageId,React.ReactNode>={home:<HomePage go={setPage}/>,plan:<PlanPage go={setPage}/>,study:<StudyPage/>,contents:<ContentsPage go={setPage}/>,questions:<QuestionsPage/>,errors:<ErrorsPage go={setPage}/>,performance:<PerformancePage/>,simulations:<SimulationsPage/>,history:<HistoryPage/>,settings:<SettingsPage/>,discursive:<DiscursivePage/>}
   return <><Layout page={page} setPage={setPage}>{pages[page]}</Layout><FeedbackCenter/><AchievementCelebration achievement={celebrationQueue[0]||null} onClose={closeCelebration}/></>
 }
