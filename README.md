@@ -1,3 +1,13 @@
+## v2.6.0
+- **Importar relatório das listas de questões**: cole o código `ROTA1:` do fim da lista em Questões e o app registra acertos, tempo total e tempo por questão. Formato em `docs/FORMATO-RELATORIO.md`.
+- **Banca**: registros novos não vêm mais como “FGV” por padrão. Listas importadas entram como “Lista própria”.
+- **Próxima ação sugerida** passa a considerar o peso de cada disciplina no edital (questões por hora de estudo). Física tem peso extra por ser também o tema da discursiva. A sugestão também considera o risco em cada parte da prova e mostra o motivo.
+- **Painel da linha de corte** (Hoje e Desempenho): Conhecimentos Básicos e Específicos medidos separadamente, com a linha de 50% exigida no item 8.16 do edital.
+- **Prontidão honesta**: sem valores inventados. Só aparece a partir de 30 questões registradas e usa apenas componentes com dados reais.
+- **Discursiva**: nova página para treinar as 2 questões de 5 pontos. Tem estimativa de linhas (15 a 30), nota, devolutiva e botão para copiar a resposta para correção. Treinos da v14 são preservados.
+- **Simulados** podem ser registrados separando Básicos e Específicos.
+- **Sessão em andamento é salva**: o cronômetro e as questões da sessão sobrevivem a recarregar ou fechar a aba. Se o app ficar fechado por mais de 30 min com o cronômetro rodando, a sessão volta pausada no último momento em que estava aberta.
+
 ## v2.4.0
 - Evolução diária com seletor de 15 ou 30 dias.
 - Filtros visuais de conteúdo, incluindo ocultar dominados.

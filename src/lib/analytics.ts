@@ -21,8 +21,55 @@ export const weightedCoverage=(s:AppState)=>{
   return d?Math.round(n/d):0
 }
 export const streak=(s:AppState)=>{const dates=[...new Set(s.sessions.map(x=>x.date))].sort().reverse();let c=0,d=today();for(;;){if(dates.includes(d)){c++;d=addDays(d,-1)}else if(c===0){d=addDays(d,-1);if(dates.includes(d)){c++;d=addDays(d,-1)}else break}else break}return c}
-export const retention=(s:AppState)=>{if(!s.reviews.length)return 50;const done=s.reviews.filter(r=>r.lastRating);if(!done.length)return 50;const ok=done.filter(r=>['bom','facil'].includes(String(r.lastRating))).length;return Math.round(ok/done.length*100)}
-export const readiness=(s:AppState)=>Math.round(weightedCoverage(s)*.35+(overallAccuracy(s)||40)*.35+retention(s)*.15+(s.simulations.at(-1)?.percent||50)*.15)
+export const ratedReviews=(s:AppState)=>s.reviews.filter(r=>r.lastRating)
+export const retention=(s:AppState):number|null=>{const done=ratedReviews(s);if(done.length<MIN_REVIEWS)return null;const ok=done.filter(r=>['bom','facil'].includes(String(r.lastRating))).length;return Math.round(ok/done.length*100)}
+
+// ---------- Partes da prova (edital SEDUC-PA, Anexo V, item 1.1) ----------
+// Aprovação exige ≥ 50% em CADA parte, separadamente, e nenhum módulo zerado (item 8.16).
+export type PartId='basicos'|'especificos'
+export const PART_DISCIPLINES:Record<PartId,string[]>={basicos:['Língua Portuguesa','Raciocínio Lógico','Atualidades','Conhecimentos Pedagógicos'],especificos:['Física']}
+export const PART_LABEL:Record<PartId,string>={basicos:'Conhecimentos Básicos',especificos:'Conhecimentos Específicos'}
+export const partOf=(discipline:string):PartId=>PART_DISCIPLINES.especificos.includes(discipline)?'especificos':'basicos'
+export const MIN_PART_QUESTIONS=15
+export const MIN_READINESS_QUESTIONS=30
+export const MIN_REVIEWS=5
+export const CUT_LINE=50
+export type PartStatus='sem_dados'|'risco'|'atencao'|'seguro'
+export type PartStat={id:PartId;label:string;questions:number;correct:number;accuracy:number|null;coverage:number;status:PartStatus;missing:number;disciplines:Array<{name:string;questions:number;accuracy:number|null;officialQuestions:number}>}
+const partStatus=(acc:number|null):PartStatus=>acc===null?'sem_dados':acc<CUT_LINE?'risco':acc<60?'atencao':'seguro'
+export function partStats(s:AppState):Record<PartId,PartStat>{
+  const out={} as Record<PartId,PartStat>
+  for(const id of ['basicos','especificos'] as PartId[]){
+    const discs=PART_DISCIPLINES[id]
+    const qs=s.questionSessions.filter(q=>discs.includes(q.discipline))
+    const questions=qs.reduce((a,b)=>a+b.total,0),correct=qs.reduce((a,b)=>a+b.correct,0)
+    const accuracy=questions>=MIN_PART_QUESTIONS?Math.round(correct/questions*100):null
+    let n=0,d=0
+    const disciplines=discs.map(name=>{
+      const ts=topics.filter(t=>t.discipline===name),w=disciplineWeights[name]||0
+      if(ts.length){n+=ts.reduce((a,t)=>a+statusScore[getProgress(s,t.id).status],0)/ts.length*w;d+=w}
+      const dq=qs.filter(q=>q.discipline===name),tot=dq.reduce((a,b)=>a+b.total,0),cor=dq.reduce((a,b)=>a+b.correct,0)
+      return {name,questions:tot,accuracy:tot?Math.round(cor/tot*100):null,officialQuestions:w}
+    })
+    out[id]={id,label:PART_LABEL[id],questions,correct,accuracy,coverage:d?Math.round(n/d):0,status:partStatus(accuracy),missing:Math.max(0,MIN_PART_QUESTIONS-questions),disciplines}
+  }
+  return out
+}
+
+// Prontidão: só usa componentes com dados reais; sem base mínima, devolve null (nada de valores inventados)
+export type Readiness={value:number|null;reason:string;parts:string[]}
+export function readinessInfo(s:AppState):Readiness{
+  const totalQ=totalQuestions(s)
+  if(totalQ<MIN_READINESS_QUESTIONS)return {value:null,reason:`Registre mais ${MIN_READINESS_QUESTIONS-totalQ} questões para calcular`,parts:[]}
+  const ps=partStats(s),accs=[ps.basicos.accuracy,ps.especificos.accuracy].filter((x):x is number=>x!==null)
+  const acc=accs.length?Math.round(accs.reduce((a,b)=>a+b,0)/accs.length):overallAccuracy(s)
+  const comps:Array<[string,number,number]>=[['cobertura do edital',weightedCoverage(s),.35],['acertos',acc,.35]]
+  const ret=retention(s);if(ret!==null)comps.push(['revisões',ret,.15])
+  const sim=s.simulations.at(-1)?.percent;if(typeof sim==='number')comps.push(['último simulado',sim,.15])
+  const w=comps.reduce((a,c)=>a+c[2],0)
+  return {value:Math.round(comps.reduce((a,c)=>a+c[1]*c[2],0)/w),reason:`Baseada em ${comps.map(c=>c[0]).join(', ')}`,parts:comps.map(c=>c[0])}
+}
+export const readiness=(s:AppState)=>readinessInfo(s).value
 export const daysToExam=()=>Math.max(0,daysBetween(today(),'2026-11-29'))
 export const topicVisualScore=(s:AppState,t:Topic)=>{const p=getProgress(s,t.id);const a=accuracyForTopic(s,t.id);return Math.round(statusScore[p.status]*.7+(a??statusScore[p.status])*.3)}
 export const disciplineStats=(s:AppState)=>Object.keys(disciplineWeights).map(d=>{const ts=topics.filter(t=>t.discipline===d);const score=ts.length?Math.round(ts.reduce((a,t)=>a+topicVisualScore(s,t),0)/ts.length):0;const q=s.questionSessions.filter(x=>x.discipline===d);const total=q.reduce((a,b)=>a+b.total,0);const correct=q.reduce((a,b)=>a+b.correct,0);return {name:d,score,accuracy:total?Math.round(correct/total*100):0,questions:total,dominated:ts.filter(t=>getProgress(s,t.id).status==='dominado').length,totalTopics:ts.length}})
@@ -42,8 +89,37 @@ export const dailySeries=(s:AppState,days=15)=>Array.from({length:days},(_,i)=>{
 })
 
 export const activityHeatmap=(s:AppState,days=84)=>Array.from({length:days},(_,i)=>{const date=addDays(today(),-(days-1-i));const seconds=s.sessions.filter(x=>x.date===date).reduce((a,b)=>a+b.durationSeconds,0);const questions=s.questionSessions.filter(x=>x.date===date).reduce((a,b)=>a+b.total,0);return {date,minutes:Math.round(seconds/60),questions,score:Math.min(4,Math.ceil((seconds/60+questions*1.5)/35))}})
-export const priorityScore=(s:AppState,t:Topic)=>{const p=getProgress(s,t.id),acc=accuracyForTopic(s,t.id),last=p.updatedAt?p.updatedAt.slice(0,10):null,stale=last?Math.max(0,Math.min(30,daysBetween(last,today()))):30,overdue=s.reviews.some(r=>r.topicId===t.id&&r.due<=today()),errs=s.errors.filter(e=>e.topicId===t.id&&!e.resolved).length;let x=(acc===null?18:Math.max(0,(75-acc)*.9))+Math.min(25,stale*.85)+({nao_iniciado:22,estudando:14,revisando:8,dominado:0}[p.status])+ (overdue?12:0)+Math.min(16,errs*4);return Math.round(Math.min(100,x))}
-export const nextTopic=(s:AppState)=>topics.slice().sort((a,b)=>priorityScore(s,b)-priorityScore(s,a))[0]
+// ---------- Prioridade ----------
+// Rendimento = questões esperadas por hora de estudo da disciplina (questões no edital ÷ horas estimadas no mapa).
+// Física ganha peso extra porque também é o conteúdo das 2 questões discursivas (10 pontos, item 12.1 do edital).
+export const DISCURSIVE_BOOST=1.5
+const disciplineHours:Record<string,number>=topics.reduce((a,t)=>{a[t.discipline]=(a[t.discipline]||0)+t.minutes/60;return a},{} as Record<string,number>)
+const rawYield=(d:string)=>(disciplineWeights[d]||0)/Math.max(1,disciplineHours[d]||1)
+const avgYield=Object.keys(disciplineWeights).reduce((a,d)=>a+rawYield(d),0)/Math.max(1,Object.keys(disciplineWeights).length)
+export const yieldFactor=(d:string)=>Math.max(.7,Math.min(1.6,rawYield(d)*(partOf(d)==='especificos'?DISCURSIVE_BOOST:1)/avgYield))
+const PART_BONUS:Record<PartStatus,number>={risco:16,atencao:9,sem_dados:5,seguro:0}
+export type Priority={score:number;reasons:string[]}
+export function priorityInfo(s:AppState,t:Topic,ps=partStats(s)):Priority{
+  const p=getProgress(s,t.id),acc=accuracyForTopic(s,t.id),last=p.updatedAt?p.updatedAt.slice(0,10):null,stale=last?Math.max(0,Math.min(30,daysBetween(last,today()))):30,overdue=s.reviews.some(r=>r.topicId===t.id&&r.due<=today()),errs=s.errors.filter(e=>e.topicId===t.id&&!e.resolved).length
+  const need=(acc===null?18:Math.max(0,(75-acc)*.9))+Math.min(25,stale*.85)+({nao_iniciado:22,estudando:14,revisando:8,dominado:0}[p.status])+(overdue?12:0)+Math.min(16,errs*4)
+  const pid=partOf(t.discipline),yf=yieldFactor(t.discipline),part=ps[pid],other=ps[pid==='basicos'?'especificos':'basicos']
+  // Parte ainda sem medição enquanto a outra já tem: empurra para medir antes que vire surpresa no corte
+  const unmeasured=part.status==='sem_dados'&&other.status!=='sem_dados'
+  const bonus=unmeasured?14:PART_BONUS[part.status]
+  const reasons:string[]=[]
+  if(partOf(t.discipline)==='especificos')reasons.push('Física vale 30 questões e é o tema da discursiva')
+  else if(yf>=1.05)reasons.push(`${t.discipline} rende bem por hora de estudo`)
+  if(part.status==='risco')reasons.push(`${part.label} abaixo da linha de corte (${part.accuracy}%)`)
+  else if(part.status==='atencao')reasons.push(`${part.label} com pouca margem sobre o corte (${part.accuracy}%)`)
+  if(unmeasured)reasons.push(`${part.label} ainda sem questões suficientes para medir o corte`)
+  if(overdue)reasons.push('revisão vencida')
+  if(errs)reasons.push(`${errs} erro(s) em aberto`)
+  if(acc!==null&&acc<60)reasons.push(`${acc}% de acertos neste conteúdo`)
+  if(p.status==='nao_iniciado'&&reasons.length<2)reasons.push('ainda não iniciado')
+  return {score:Math.round(Math.min(100,need*.8*yf+bonus)),reasons}
+}
+export const priorityScore=(s:AppState,t:Topic)=>priorityInfo(s,t).score
+export const nextTopic=(s:AppState)=>{const ps=partStats(s);let best:Topic|undefined,bs=-1;for(const t of topics){const sc=priorityInfo(s,t,ps).score;if(sc>bs||(sc===bs&&best&&(disciplineWeights[t.discipline]||0)>(disciplineWeights[best.discipline]||0))){best=t;bs=sc}}return best}
 export const xpInfo=(s:AppState)=>{const xp=Math.round(totalStudySeconds(s)/60)+totalQuestions(s)*2+s.reviews.filter(r=>r.lastReviewed).length*8+topics.filter(t=>getProgress(s,t.id).status==='dominado').length*45+s.errors.filter(e=>e.resolved).length*20;const level=Math.floor(xp/500)+1;return {xp,level,current:xp%500,next:500}}
 export const recentActivity=(s:AppState)=>[
   ...s.sessions.map(x=>({date:x.createdAt||`${x.date}T12:00:00`,kind:'Estudo',title:x.topicTitle||'Sessão de estudo',detail:`${Math.round(x.durationSeconds/60)} min`})),

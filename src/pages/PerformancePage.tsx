@@ -1,20 +1,22 @@
 import { useState } from 'react'
 import { Bar, BarChart, CartesianGrid, Cell, ComposedChart, Legend, Line, Pie, PieChart, Tooltip, XAxis, YAxis } from 'recharts'
 import { useAppStore } from '../store/useAppStore'
-import { activityHeatmap, dailySeries, disciplineStats, overallAccuracy, readiness, statusCounts, totalQuestions, totalStudySeconds, weightedCoverage, xpInfo } from '../lib/analytics'
+import { activityHeatmap, dailySeries, disciplineStats, overallAccuracy, readinessInfo, statusCounts, totalQuestions, totalStudySeconds, weightedCoverage, xpInfo } from '../lib/analytics'
 import { fmtDuration } from '../lib/date'
 import { MetricCard } from '../components/MetricCard'
 import { ChartBox } from '../components/ChartBox'
+import { CutPanel } from '../components/CutPanel'
 import { BarChart3, BookOpen, Clock3, FileQuestion, Target, Trophy } from 'lucide-react'
 
 export function PerformancePage(){
   const s=useAppStore(x=>x.data),[days,setDays]=useState<15|30>(15)
-  const series=dailySeries(s,days),disc=disciplineStats(s),status=statusCounts(s),heat=activityHeatmap(s),xp=xpInfo(s)
+  const ready=readinessInfo(s),qTotal=totalQuestions(s),series=dailySeries(s,days),disc=disciplineStats(s),status=statusCounts(s),heat=activityHeatmap(s),xp=xpInfo(s)
   const hasDaily=series.some(d=>d.questions>0||d.minutes>0)
   const pie=[['Dominado',status.dominado,'#18a47c'],['Revisando',status.revisando,'#4f9cf2'],['Estudando',status.estudando,'#e9ad3e'],['Não iniciado',status.nao_iniciado,'#c8d5df']].map(([name,value,color])=>({name,value,color}))
   return <div>
     <div className="page-heading"><div><span className="eyebrow">DESEMPENHO</span><h1>Sua evolução, dia após dia.</h1><p>Veja como questões, acertos e tempo de estudo variam ao longo dos dias.</p></div></div>
-    <div className="metric-row performance"><MetricCard label="Prontidão" value={`${readiness(s)}%`} icon={<Target/>}/><MetricCard label="Edital" value={`${weightedCoverage(s)}%`} icon={<BookOpen/>}/><MetricCard label="Acertos" value={`${overallAccuracy(s)}%`} icon={<BarChart3/>}/><MetricCard label="Questões" value={totalQuestions(s)} icon={<FileQuestion/>}/><MetricCard label="Estudo" value={fmtDuration(totalStudySeconds(s))} icon={<Clock3/>}/><MetricCard label="Nível" value={xp.level} sub={`${xp.xp} XP`} icon={<Trophy/>}/></div>
+    <div className="metric-row performance"><MetricCard label="Prontidão" value={ready.value===null?'—':`${ready.value}%`} sub={ready.reason} icon={<Target/>}/><MetricCard label="Edital" value={`${weightedCoverage(s)}%`} icon={<BookOpen/>}/><MetricCard label="Acertos" value={qTotal?`${overallAccuracy(s)}%`:'—'} icon={<BarChart3/>}/><MetricCard label="Questões" value={totalQuestions(s)} icon={<FileQuestion/>}/><MetricCard label="Estudo" value={fmtDuration(totalStudySeconds(s))} icon={<Clock3/>}/><MetricCard label="Nível" value={xp.level} sub={`${xp.xp} XP`} icon={<Trophy/>}/></div>
+    <CutPanel s={s}/>
     <div className="dashboard-grid two">
       <article className="panel chart-panel daily-chart-panel"><div className="panel-title"><div><span className="eyebrow">EVOLUÇÃO DIÁRIA</span><h3>Questões × acertos × estudo</h3></div><div className="range-switch"><button className={days===15?'active':''} onClick={()=>setDays(15)}>15 dias</button><button className={days===30?'active':''} onClick={()=>setDays(30)}>30 dias</button></div></div>{hasDaily?<ChartBox height={340}>{({width,height})=><ComposedChart width={width} height={height} data={series} margin={{top:12,right:24,left:0,bottom:8}}><CartesianGrid strokeDasharray="3 3" stroke="#e5edf3"/><XAxis dataKey="day" interval={days===15?1:2}/><YAxis yAxisId="left"/><YAxis yAxisId="right" orientation="right" domain={[0,100]}/><Tooltip/><Legend/><Bar yAxisId="left" dataKey="questions" name="Questões" fill="#6aa7ed" radius={[5,5,0,0]}/><Bar yAxisId="left" dataKey="minutes" name="Minutos" fill="#a9d8e2" radius={[5,5,0,0]}/><Line yAxisId="right" type="monotone" dataKey="accuracy" name="Acertos %" stroke="#18a47c" strokeWidth={3} dot={{r:3}} connectNulls/></ComposedChart>}</ChartBox>:<div className="chart-empty"><BarChart3 size={42}/><strong>Seu gráfico começa com o primeiro registro</strong><span>Salve uma sessão de estudo ou um bloco de questões para visualizar a evolução diária.</span></div>}</article>
       <article className="panel chart-panel"><span className="eyebrow">STATUS</span><h3>Distribuição do mapa de conteúdos</h3><div className="donut-wrap"><div className="donut-chart-shell"><ChartBox height={280}>{({width,height})=><PieChart width={width} height={height}><Pie data={pie} dataKey="value" cx="50%" cy="50%" innerRadius={68} outerRadius={102}>{pie.map((p:any)=><Cell key={p.name} fill={p.color}/>)}</Pie><Tooltip/></PieChart>}</ChartBox></div><div className="legend-list">{pie.map((p:any)=><div key={p.name}><i style={{background:p.color}}></i><span>{p.name}</span><b>{p.value}</b></div>)}</div></div></article>

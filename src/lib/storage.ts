@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie'
-import type { AppState } from '../types'
+import type { AppState, DiscursiveRecord } from '../types'
 import { formulaSeed } from '../data/formulas'
 import { APP_VERSION } from '../version'
 
@@ -17,7 +17,7 @@ export const db=new RotaDB()
 
 export function defaultState():AppState{
   return {
-    version:'2.5.0',progress:[],sessions:[],questionSessions:[],errors:[],reviews:[],flashcards:[],questionBank:[],simulations:[],discursives:[],practicals:[],
+    version:'2.6.0',progress:[],sessions:[],questionSessions:[],errors:[],reviews:[],flashcards:[],questionBank:[],simulations:[],discursives:[],practicals:[],
     formulas:formulaSeed.map(f=>({...f})),micro:{answered:0,correct:0},dailyDone:{},pinnedTopics:[],achievementsSeen:[],
     diagnostic:{attempts:[],draft:null,activeResultId:null,review:false},
     settings:{weeklyHoursGoal:12,weeklyQuestionsGoal:180,dailyMinutesGoal:120,firstCycleTarget:'2026-11-15',theme:'light',focusPreset:50,sidebarCollapsed:false,displayName:''},
@@ -26,6 +26,24 @@ export function defaultState():AppState{
 }
 
 function safeArray<T>(x:T[]|undefined|null):T[]{return Array.isArray(x)?x:[]}
+// Aceita tanto o formato da v14 (theme, lines, score, notes) quanto o novo (enunciado, resposta, devolutiva)
+function normalizeDiscursives(x:unknown):DiscursiveRecord[]{
+  if(!Array.isArray(x))return []
+  return x.filter(d=>d&&typeof d==='object').map((d:any,i)=>({
+    id:String(d.id||`disc-${i}-${Date.now().toString(36)}`),
+    date:String(d.date||String(d.createdAt||'').slice(0,10)||new Date().toISOString().slice(0,10)),
+    createdAt:d.createdAt,
+    theme:String(d.theme||'Treino discursivo'),
+    topicId:d.topicId||undefined,
+    prompt:d.prompt||'',
+    answer:d.answer||'',
+    lines:Number.isFinite(+d.lines)?+d.lines:0,
+    score:d.score===null||d.score===undefined||d.score===''||!Number.isFinite(+d.score)?null:+d.score,
+    maxScore:Number.isFinite(+d.maxScore)&&+d.maxScore>0?+d.maxScore:10, // v14 dava nota de 0 a 10
+    notes:d.notes||'',
+    feedback:d.feedback||''
+  }))
+}
 export function migrateState(input:unknown):AppState{
   const base=defaultState()
   if(!input||typeof input!=='object') return base
@@ -33,8 +51,8 @@ export function migrateState(input:unknown):AppState{
   const qSource=Array.isArray(p.questionSessions)?p.questionSessions:(Array.isArray(p.questions)?p.questions:[]) as any[]
   return {
     ...base,...p,
-    version:'2.5.0',
-    progress:safeArray(p.progress),sessions:safeArray(p.sessions),questionSessions:safeArray<any>(qSource),errors:safeArray(p.errors),reviews:safeArray(p.reviews),flashcards:safeArray(p.flashcards),questionBank:safeArray(p.questionBank),simulations:safeArray(p.simulations),discursives:safeArray(p.discursives),practicals:safeArray(p.practicals),
+    version:'2.6.0',
+    progress:safeArray(p.progress),sessions:safeArray(p.sessions),questionSessions:safeArray<any>(qSource),errors:safeArray(p.errors),reviews:safeArray(p.reviews),flashcards:safeArray(p.flashcards),questionBank:safeArray(p.questionBank),simulations:safeArray(p.simulations),discursives:normalizeDiscursives(p.discursives),practicals:safeArray(p.practicals),
     formulas:Array.isArray(p.formulas)&&p.formulas.length?p.formulas:base.formulas,
     micro:{...base.micro,...(p.micro||{})},dailyDone:{...base.dailyDone,...(p.dailyDone||{})},pinnedTopics:safeArray(p.pinnedTopics),achievementsSeen:safeArray(p.achievementsSeen),
     diagnostic:{...base.diagnostic,...(p.diagnostic||{}),attempts:safeArray(p.diagnostic?.attempts)},

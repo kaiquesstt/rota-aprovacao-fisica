@@ -3,15 +3,17 @@ import { BarChart3, BookOpen, CheckCircle2, Clock3, FileQuestion, Flame, Play, R
 import { Bar, BarChart, CartesianGrid, Cell, ComposedChart, Line, Pie, PieChart, Tooltip, XAxis, YAxis } from 'recharts'
 import { MetricCard } from '../components/MetricCard'
 import { ChartBox } from '../components/ChartBox'
+import { CutPanel } from '../components/CutPanel'
 import { useAppStore } from '../store/useAppStore'
 import { topics } from '../data/topics'
-import { achievementData, daysToExam, disciplineStats, dueReviews, nextTopic, overallAccuracy, readiness, recentActivity, statusCounts, streak, totalQuestions, totalStudySeconds, weightedCoverage, dailySeries, xpInfo } from '../lib/analytics'
+import { overallAccuracy } from '../lib/analytics'
+import { achievementData, daysToExam, disciplineStats, dueReviews, nextTopic, priorityInfo, readinessInfo, recentActivity, statusCounts, streak, totalQuestions, totalStudySeconds, weightedCoverage, dailySeries, xpInfo } from '../lib/analytics'
 import { fmtDuration, today } from '../lib/date'
 import type { PageId } from '../types'
 
 export function HomePage({go}:{go:(p:PageId)=>void}){
   const s=useAppStore(x=>x.data),startTimer=useAppStore(x=>x.startTimer)
-  const next=nextTopic(s),due=dueReviews(s),series=dailySeries(s,15),status=statusCounts(s),xp=xpInfo(s),disc=disciplineStats(s).filter(x=>x.totalTopics>0),recent=recentActivity(s),achievements=achievementData(s)
+  const next=nextTopic(s),nextWhy=next?priorityInfo(s,next).reasons:[],ready=readinessInfo(s),qTotal=totalQuestions(s),due=dueReviews(s),series=dailySeries(s,15),status=statusCounts(s),xp=xpInfo(s),disc=disciplineStats(s).filter(x=>x.totalTopics>0),recent=recentActivity(s),achievements=achievementData(s)
   const [showAllAchievements,setShowAllAchievements]=useState(false)
   const unlocked=achievements.filter(a=>a.done).length
   const statusData=[{name:'Dominado',value:status.dominado,color:'#18a47c'},{name:'Revisando',value:status.revisando,color:'#4f9cf2'},{name:'Estudando',value:status.estudando,color:'#e9ad3e'},{name:'Não iniciado',value:status.nao_iniciado,color:'#c8d5df'}]
@@ -20,7 +22,7 @@ export function HomePage({go}:{go:(p:PageId)=>void}){
       <div className="page-heading"><div><span className="eyebrow">COMANDO DE ESTUDO</span><h1>Seu centro de controle para a aprovação em Física.</h1></div><div className="quote">“Disciplina hoje. Aprovação amanhã.”</div></div>
       <div className="today-row">
         <article className="today-hero"><span className="eyebrow light">HOJE</span><h2>{new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'})}</h2><p>Foco, constância e propósito. Você está construindo um resultado, sessão por sessão.</p><div className="mountain-art"><span></span><span></span><span></span></div><small>{daysToExam()} dias até a prova</small></article>
-        <article className="next-action"><div className="next-head"><div className="round-icon"><Zap size={21}/></div><div><span className="eyebrow">PRÓXIMA AÇÃO SUGERIDA</span><h2>{due.length?`Revisar ${due.length} conteúdo${due.length>1?'s':''}`:next?.title||'Escolher um conteúdo'}</h2></div></div><p>{due.length?'Há revisões vencidas. Você decide se quer fazê-las agora ou seguir para conteúdo novo.':next?`${next.discipline} • ${next.group} • cerca de ${next.minutes} min`:'Abra o mapa de conteúdos para começar.'}</p><button className="cta" onClick={()=>{if(due.length)go('reviews');else if(next){startTimer(next.id,next.minutes);go('study')}}}><Play size={17}/> Iniciar agora</button></article>
+        <article className="next-action"><div className="next-head"><div className="round-icon"><Zap size={21}/></div><div><span className="eyebrow">PRÓXIMA AÇÃO SUGERIDA</span><h2>{due.length?`Revisar ${due.length} conteúdo${due.length>1?'s':''}`:next?.title||'Escolher um conteúdo'}</h2></div></div><p>{due.length?'Há revisões vencidas. Você decide se quer fazê-las agora ou seguir para conteúdo novo.':next?`${next.discipline} • ${next.group} • cerca de ${next.minutes} min`:'Abra o mapa de conteúdos para começar.'}</p>{!due.length&&nextWhy.length>0&&<p className="next-why">Por quê: {nextWhy.slice(0,3).join(' · ')}.</p>}<button className="cta" onClick={()=>{if(due.length)go('reviews');else if(next){startTimer(next.id,next.minutes);go('study')}}}><Play size={17}/> Iniciar agora</button></article>
       </div>
       <div className="quick-actions">
         <button onClick={()=>go('questions')}><FileQuestion/><span><b>Questões</b><small>Registre por assunto e banca</small></span></button>
@@ -29,13 +31,14 @@ export function HomePage({go}:{go:(p:PageId)=>void}){
         <button onClick={()=>go('performance')}><BarChart3/><span><b>Desempenho</b><small>Veja sua evolução gráfica</small></span></button>
       </div>
       <div className="metric-row">
-        <MetricCard label="Prontidão" value={`${readiness(s)}%`} sub="índice composto" icon={<Target size={20}/>}/>
+        <MetricCard label="Prontidão" value={ready.value===null?'—':`${ready.value}%`} sub={ready.value===null?ready.reason:'índice composto'} icon={<Target size={20}/>}/>
         <MetricCard label="Edital" value={`${weightedCoverage(s)}%`} sub="cobertura ponderada" icon={<BookOpen size={20}/>}/>
-        <MetricCard label="Acertos" value={`${overallAccuracy(s)}%`} sub="nas questões registradas" icon={<CheckCircle2 size={20}/>}/>
+        <MetricCard label="Acertos" value={qTotal?`${overallAccuracy(s)}%`:'—'} sub={qTotal?'nas questões registradas':'nenhuma questão registrada'} icon={<CheckCircle2 size={20}/>}/>
         <MetricCard label="Questões" value={totalQuestions(s)} sub="volume acumulado" icon={<FileQuestion size={20}/>}/>
         <MetricCard label="Estudo" value={fmtDuration(totalStudySeconds(s))} sub="tempo acumulado" icon={<Clock3 size={20}/>}/>
         <MetricCard label="Sequência" value={`${streak(s)} dias`} sub="consistência recente" icon={<Flame size={20}/>}/>
       </div>
+      <CutPanel s={s}/>
       <article className="panel achievements-panel"><div className="panel-title"><div><span className="eyebrow">CONQUISTAS</span><h3>Marcos da sua preparação</h3><p className="achievement-summary-copy">{unlocked} de {achievements.length} conquistas desbloqueadas</p></div><button className="text-btn" onClick={()=>setShowAllAchievements(v=>!v)}>{showAllAchievements?'Mostrar menos':'Ver todas'} →</button></div><div className="achievement-overall"><span style={{width:`${Math.round(unlocked/achievements.length*100)}%`}}></span></div><div className="achievement-grid">{achievements.slice(0,showAllAchievements?achievements.length:6).map(a=><div className={`achievement-card ${a.done?'unlocked':'locked'}`} key={a.id}><div className="achievement-icon">{a.icon}</div><div className="achievement-copy"><strong>{a.title}</strong><small>{a.desc}</small><div className="achievement-meta"><span>{a.done?'Concluída':'Em progresso'}</span><b>{a.currentLabel} / {a.targetLabel}</b></div><div className="achievement-progress"><i style={{width:`${a.done?100:a.pct}%`}}></i></div></div></div>)}</div></article>
       <div className="dashboard-grid two">
         <article className="panel chart-panel"><div className="panel-title"><div><span className="eyebrow">EVOLUÇÃO DIÁRIA</span><h3>Últimos 15 dias</h3></div><button className="text-btn" onClick={()=>go('performance')}>Ver detalhes →</button></div><ChartBox height={270}>{({width,height})=><ComposedChart width={width} height={height} data={series} margin={{top:10,right:18,left:0,bottom:8}}><CartesianGrid strokeDasharray="3 3" stroke="#e6edf3"/><XAxis dataKey="day" interval={2}/><YAxis/><Tooltip/><Bar dataKey="questions" fill="#7db8f5" opacity={.55}/><Line type="monotone" dataKey="accuracy" stroke="#15a6b6" strokeWidth={3} dot={{r:3}} connectNulls/></ComposedChart>}</ChartBox></article>

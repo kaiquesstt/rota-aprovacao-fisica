@@ -16,6 +16,7 @@ import { SimulationsPage } from './pages/SimulationsPage'
 import { MaterialsPage } from './pages/MaterialsPage'
 import { HistoryPage } from './pages/HistoryPage'
 import { SettingsPage } from './pages/SettingsPage'
+import { DiscursivePage } from './pages/DiscursivePage'
 import { APP_VERSION } from './version'
 
 export default function App(){
@@ -38,6 +39,6 @@ export default function App(){
 
   const closeCelebration=()=>setCelebrationQueue(q=>{const first=q[0];if(first)markSeen(first.id);return q.slice(1)})
   if(!hydrated)return <div className="loading-screen"><div className="loader"></div><strong>Preparando sua Rota da Aprovação {APP_VERSION}…</strong><span>Lendo seu progresso com segurança.</span></div>
-  const pages:Record<PageId,React.ReactNode>={home:<HomePage go={setPage}/>,plan:<PlanPage/>,study:<StudyPage/>,contents:<ContentsPage go={setPage}/>,questions:<QuestionsPage/>,reviews:<ReviewsPage/>,performance:<PerformancePage/>,simulations:<SimulationsPage/>,materials:<MaterialsPage/>,history:<HistoryPage/>,settings:<SettingsPage/>}
+  const pages:Record<PageId,React.ReactNode>={home:<HomePage go={setPage}/>,plan:<PlanPage/>,study:<StudyPage/>,contents:<ContentsPage go={setPage}/>,questions:<QuestionsPage/>,reviews:<ReviewsPage/>,performance:<PerformancePage/>,simulations:<SimulationsPage/>,materials:<MaterialsPage/>,history:<HistoryPage/>,settings:<SettingsPage/>,discursive:<DiscursivePage/>}
   return <><Layout page={page} setPage={setPage}>{pages[page]}</Layout><FeedbackCenter/><AchievementCelebration achievement={celebrationQueue[0]||null} onClose={closeCelebration}/></>
 }
