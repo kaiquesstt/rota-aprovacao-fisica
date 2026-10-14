@@ -66,7 +66,8 @@ export function readinessInfo(s:AppState):Readiness{
 }
 export const readiness=(s:AppState)=>readinessInfo(s).value
 export const daysToExam=()=>Math.max(0,daysBetween(today(),'2026-11-29'))
-export const topicVisualScore=(s:AppState,t:Topic)=>{const p=getProgress(s,t.id);const a=accuracyForTopic(s,t.id);return Math.round(statusScore[p.status]*.7+(a??statusScore[p.status])*.3)}
+// Progresso visual = só o status (Dominado = 100%). Os acertos aparecem separados, para não descontar duas vezes.
+export const topicVisualScore=(s:AppState,t:Topic)=>statusScore[getProgress(s,t.id).status]
 export const disciplineStats=(s:AppState)=>Object.keys(disciplineWeights).map(d=>{const ts=topics.filter(t=>t.discipline===d);const score=ts.length?Math.round(ts.reduce((a,t)=>a+topicVisualScore(s,t),0)/ts.length):0;const q=s.questionSessions.filter(x=>x.discipline===d);const total=q.reduce((a,b)=>a+b.total,0);const correct=q.reduce((a,b)=>a+b.correct,0);return {name:d,score,accuracy:total?Math.round(correct/total*100):0,questions:total,dominated:ts.filter(t=>getProgress(s,t.id).status==='dominado').length,totalTopics:ts.length}})
 export const statusCounts=(s:AppState)=>topics.reduce((a,t)=>{const st=getProgress(s,t.id).status;a[st]++;return a},{nao_iniciado:0,estudando:0,revisando:0,dominado:0} as Record<TopicStatus,number>)
 export function weekStats(s:AppState,offset=0){const a=dateStr(weekStart(offset)),b=dateStr(new Date(weekStart(offset).getTime()+7*86400000));const ss=s.sessions.filter(x=>x.date>=a&&x.date<b),qs=s.questionSessions.filter(x=>x.date>=a&&x.date<b),time=ss.reduce((x,y)=>x+y.durationSeconds,0),total=qs.reduce((x,y)=>x+y.total,0),correct=qs.reduce((x,y)=>x+y.correct,0);return {a,b,time,total,correct,acc:total?Math.round(correct/total*100):0,sessions:ss.length}}

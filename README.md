@@ -1,3 +1,7 @@
+## v2.7.1
+- A barra de progresso das áreas e unidades passa a refletir só o status (Dominado = 100%). Os acertos continuam aparecendo separados.
+- Áreas e itens do edital 100% dominados ficam destacados em verde, com ícone de concluído.
+
 ## v2.7.0
 - **Conteúdos reorganizados**: de 615 microconteúdos para 180 unidades, cada uma do tamanho de uma lista de questões. Repetições entre itens do edital foram eliminadas (ex.: campos de fio/espira/solenoide aparecem uma vez só). O progresso, as questões, o tempo e os erros já registrados foram levados para as novas unidades. Uma unidade só fica “Dominado” se todas as partes que ela juntou estavam dominadas.
 - **Mapa de conteúdos em três níveis**: área → item do edital → unidades.
